@@ -143,7 +143,7 @@ func (m MusicService) upsertTrack(ctx context.Context, data *model.ParsedMusic, 
 			}
 		}
 
-		newTrack := model.NewTrack(data.Title, album.ID)
+		newTrack := model.NewTrack(data.Title, music.Album.ID)
 		if err := m.TrackRepo.Create(ctx, &newTrack); err != nil {
 			return fmt.Errorf("failed to create track: %w", err)
 		}
