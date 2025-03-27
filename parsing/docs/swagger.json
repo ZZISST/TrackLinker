@@ -1,0 +1,244 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Swagger API for GoShop.",
+        "title": "TrackLinker Swagger API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {},
+        "version": "2.0"
+    },
+    "basePath": "/api/v1",
+    "paths": {
+        "/api/v1/music/track": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "music"
+                ],
+                "summary": "get music",
+                "parameters": [
+                    {
+                        "description": "Body",
+                        "name": "_",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.FindMusicReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Music"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/music/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "music"
+                ],
+                "summary": "get music details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Music ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Music"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.FindMusicReq": {
+            "type": "object",
+            "properties": {
+                "link": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Music": {
+            "type": "object",
+            "properties": {
+                "album": {
+                    "$ref": "#/definitions/model.Album"
+                },
+                "artists": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Artist"
+                    }
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.MusicLink"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "song_id": {
+                    "type": "string"
+                },
+                "track_preview": {
+                    "$ref": "#/definitions/model.TrackPreview"
+                }
+            }
+        },
+        "model.Album": {
+            "type": "object",
+            "properties": {
+                "artist_id": {
+                    "type": "string"
+                },
+                "artists": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Artist"
+                    }
+                },
+                "cover_image": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "released_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "tracks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Track"
+                    }
+                }
+            }
+        },
+        "model.Artist": {
+            "type": "object",
+            "properties": {
+                "albums": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Album"
+                    }
+                },
+                "avatar": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.MusicLink": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "music_service": {
+                    "$ref": "#/definitions/model.MusicService"
+                },
+                "track": {
+                    "$ref": "#/definitions/model.Track"
+                },
+                "track_id": {
+                    "description": "One music link belongs to one track",
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.MusicService": {
+            "type": "string",
+            "enum": [
+                "Apple",
+                "Yandex",
+                "Spotify",
+                "Deezer",
+                "Unsupported"
+            ],
+            "x-enum-varnames": [
+                "Apple",
+                "Yandex",
+                "Spotify",
+                "Deezer",
+                "Unsupported"
+            ]
+        },
+        "model.Track": {
+            "type": "object",
+            "properties": {
+                "album": {
+                    "$ref": "#/definitions/model.Album"
+                },
+                "album_id": {
+                    "description": "Foreign key",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "music_links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.MusicLink"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "track_preview_id": {
+                    "$ref": "#/definitions/model.TrackPreview"
+                }
+            }
+        },
+        "model.TrackPreview": {
+            "type": "object",
+            "properties": {
+                "file_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "track_id": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

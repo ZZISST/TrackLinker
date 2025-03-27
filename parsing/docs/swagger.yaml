@@ -1,0 +1,162 @@
+basePath: /api/v1
+definitions:
+  dto.FindMusicReq:
+    properties:
+      link:
+        type: string
+    type: object
+  dto.Music:
+    properties:
+      album:
+        $ref: '#/definitions/model.Album'
+      artists:
+        items:
+          $ref: '#/definitions/model.Artist'
+        type: array
+      links:
+        items:
+          $ref: '#/definitions/model.MusicLink'
+        type: array
+      name:
+        type: string
+      song_id:
+        type: string
+      track_preview:
+        $ref: '#/definitions/model.TrackPreview'
+    type: object
+  model.Album:
+    properties:
+      artist_id:
+        type: string
+      artists:
+        items:
+          $ref: '#/definitions/model.Artist'
+        type: array
+      cover_image:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      released_at:
+        type: string
+      title:
+        type: string
+      tracks:
+        items:
+          $ref: '#/definitions/model.Track'
+        type: array
+    type: object
+  model.Artist:
+    properties:
+      albums:
+        items:
+          $ref: '#/definitions/model.Album'
+        type: array
+      avatar:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  model.MusicLink:
+    properties:
+      id:
+        type: string
+      music_service:
+        $ref: '#/definitions/model.MusicService'
+      track:
+        $ref: '#/definitions/model.Track'
+      track_id:
+        description: One music link belongs to one track
+        type: string
+      url:
+        type: string
+    type: object
+  model.MusicService:
+    enum:
+    - Apple
+    - Yandex
+    - Spotify
+    - Deezer
+    - Unsupported
+    type: string
+    x-enum-varnames:
+    - Apple
+    - Yandex
+    - Spotify
+    - Deezer
+    - Unsupported
+  model.Track:
+    properties:
+      album:
+        $ref: '#/definitions/model.Album'
+      album_id:
+        description: Foreign key
+        type: string
+      id:
+        type: string
+      music_links:
+        items:
+          $ref: '#/definitions/model.MusicLink'
+        type: array
+      title:
+        type: string
+      track_preview_id:
+        $ref: '#/definitions/model.TrackPreview'
+    type: object
+  model.TrackPreview:
+    properties:
+      file_url:
+        type: string
+      id:
+        type: string
+      track_id:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Swagger API for GoShop.
+  termsOfService: http://swagger.io/terms/
+  title: TrackLinker Swagger API
+  version: "2.0"
+paths:
+  /api/v1/music/{id}:
+    get:
+      parameters:
+      - description: Music ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Music'
+      summary: get music details
+      tags:
+      - music
+  /api/v1/music/track:
+    post:
+      parameters:
+      - description: Body
+        in: body
+        name: _
+        required: true
+        schema:
+          $ref: '#/definitions/dto.FindMusicReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Music'
+      summary: get music
+      tags:
+      - music
+swagger: "2.0"

@@ -1,0 +1,4 @@
+environment: production
+http_port: 8888
+grpc_port: 8889
+database_uri: postgres://username:password@host:5432/database
