@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"log"
+	"strings"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/ports"
@@ -23,14 +25,18 @@ type TrackRepository struct {
 // GetTrackByMusicLink implements ITrackRepository.
 func (r *TrackRepository) GetTrackByMusicLink(ctx context.Context, musicLink string) (*model.Track, error) {
 	var track model.Track
+
+	musicLink = strings.TrimSpace(musicLink)
+
 	opts := []ports.FindOption{
 		ports.WithJoin("JOIN music_links ON music_links.track_id = tracks.id"),
-		ports.WithQuery(ports.NewQuery("music_links.url = ?", musicLink)),
+		ports.WithQuery(ports.NewQuery("music_links.url ILIKE ?", musicLink)),               // Use ILIKE for case-insensitive comparison
 		ports.WithPreload([]string{"Album", "Album.Artists", "MusicLinks", "TrackPreview"}), // Preload related data
 	}
 
 	if err := r.db.FindOne(ctx, &track, opts...); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("Track not found for music link: %s", musicLink)
 			return nil, err // Track not found
 		}
 		return nil, err

@@ -3,7 +3,7 @@ package dto
 import "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 
 type Music struct {
-	SongID       string             `json:"song_id" gorm:"-"`
+	TrackID      string             `json:"track_id" gorm:"-"`
 	Album        model.Album        `json:"album" gorm:"-"`
 	Name         string             `json:"name" gorm:"-"`
 	Artists      []model.Artist     `json:"artists" gorm:"-"`

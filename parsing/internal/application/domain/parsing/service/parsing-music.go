@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -51,7 +52,7 @@ func (p *ParsingService) identifyMusicServiceByLink(link *url.URL) (model.MusicS
 		streamingService = model.Deezer
 	default:
 		fmt.Println("not supported service")
-		return model.Unsupported, fmt.Errorf(streamingService.Error())
+		return model.Unsupported, errors.New(streamingService.Error())
 	}
 
 	return streamingService, nil
