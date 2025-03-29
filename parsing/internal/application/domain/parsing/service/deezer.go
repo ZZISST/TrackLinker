@@ -3,11 +3,11 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"regexp"
 	"net/http"
 	"net/url"
 
-	"github.com/gocolly/colly"
+
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/dto"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 )
@@ -19,25 +19,37 @@ func (s *DeezerService) Service() model.MusicService {
 }
 
 func (s *DeezerService) GetData(trackUrl string) (title string, artist string, err error) {
-	c := colly.NewCollector(
-		colly.AllowedDomains("deezer.page.link", "dzr.page.link", "www.deezer.com"))
+	trackID := deezerExtractTrackID(trackUrl)
+	if trackID == "" {
+		return "", "", fmt.Errorf("не удалось извлечь ID трека из URL")
+	}
 
-	c.OnHTML("meta[property='og:title']", func(e *colly.HTMLElement) {
-		title = e.Attr("content")
-	})
+	apiURL := fmt.Sprintf("https://api.deezer.com/track/%s", trackID)
 
-	c.OnHTML("meta[itemprop='description']", func(e *colly.HTMLElement) {
-		artist = e.Attr("content")
-	})
-
-	c.OnError(func(r *colly.Response, err error) {
-		log.Println("Ошибка запроса:", err)
-	})
-
-	err = c.Visit(trackUrl)
+	resp, err := http.Get(apiURL)
 	if err != nil {
-		log.Println("Ошибка при посещении страницы:", err)
-		return "", "", err
+		return "", "", fmt.Errorf("ошибка выполнения запроса к API Deezer: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var jsonResponse map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&jsonResponse); err != nil {
+		return "", "", fmt.Errorf("ошибка разбора ответа от API Deezer: %w", err)
+	}
+
+	title, ok := jsonResponse["title"].(string)
+	if !ok {
+		return "", "", fmt.Errorf(apiURL)
+	}
+
+	artistData, ok := jsonResponse["artist"].(map[string]interface{})
+	if !ok {
+		return "", "", fmt.Errorf("не удалось извлечь данные об исполнител")
+	}
+
+	artist, ok = artistData["name"].(string)
+	if !ok {
+		return "", "", fmt.Errorf("не удалось извлечь имя исполнителя из ответа")
 	}
 
 	return title, artist, nil
@@ -91,6 +103,18 @@ func (s *DeezerService) GetAllData(title, artist string) (*model.ParsedMusic, er
 	)
 
 	return &result, nil
+}
+
+func deezerExtractTrackID(trackUrl string) string {
+	re := regexp.MustCompile(`(?:track|x).*?(\d+)`)
+
+	matches := re.FindStringSubmatch(trackUrl)
+
+	if len(matches) > 1 {
+		return matches[1]
+	}
+
+	return ""
 }
 
 func NewDeezerService() IFullParsingMusicService {
