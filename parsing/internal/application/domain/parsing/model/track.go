@@ -3,13 +3,14 @@ package model
 import "github.com/google/uuid"
 
 type Track struct {
-	ID    string `json:"id" gorm:"unique;not null;index;primary_key"`
-	Title string `json:"title"`
+	ID          string `json:"id" gorm:"unique;not null;index;primary_key"`
+	Title       string `json:"title"`
+	TrackNumber int    `json:"track_number"`
 
 	TrackPreview TrackPreview `json:"track_preview_id" gorm:"foreignKey:TrackID"`
 	AlbumID      string       `json:"album_id" gorm:"index"` // Foreign key
 	Album        Album        `json:"album" gorm:"constraint:OnDelete:CASCADE;"`
-	MusicLinks   []MusicLink  `json:"music_links" gorm:"foreignKey:TrackID"`
+	MusicLinks   []MusicLink  `json:"music_links" gorm:"polymorphicType:OwnerType;polymorphicId:OwnerID;polymorphicValue:master"`
 }
 
 type TrackPreview struct {

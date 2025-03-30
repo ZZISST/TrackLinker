@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"log"
-	"strings"
+	"net/url"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/modelutils"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/ports"
 	"gorm.io/gorm"
 )
@@ -14,23 +15,29 @@ import (
 type ITrackRepository interface {
 	Create(ctx context.Context, track *model.Track) error
 	GetTrackByID(ctx context.Context, trackID string) (*model.Track, error)
-	GetTrackByMusicLink(ctx context.Context, musicLink string) (*model.Track, error)
+	GetTrackByMusicLink(ctx context.Context, musicLink url.URL) (*model.Track, error)
 	WithTransaction(handler func() error) error
 }
 
 type TrackRepository struct {
-	db ports.DBPort
+	db           ports.DBPort
+	linkFormater modelutils.ILinkFormater
 }
 
 // GetTrackByMusicLink implements ITrackRepository.
-func (r *TrackRepository) GetTrackByMusicLink(ctx context.Context, musicLink string) (*model.Track, error) {
+func (r *TrackRepository) GetTrackByMusicLink(ctx context.Context, musicLink url.URL) (*model.Track, error) {
 	var track model.Track
 
-	musicLink = strings.TrimSpace(musicLink)
+	dbFormatLink, err := r.linkFormater.FormatLinkForDB(model.MusicRequestTrack, &musicLink)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("DB format link: %s", *dbFormatLink)
 
 	opts := []ports.FindOption{
-		ports.WithJoin("JOIN music_links ON music_links.track_id = tracks.id"),
-		ports.WithQuery(ports.NewQuery("music_links.url ILIKE ?", musicLink)),               // Use ILIKE for case-insensitive comparison
+		ports.WithJoin("JOIN music_links ON music_links.owner_id = tracks.id"),
+		ports.WithQuery(ports.NewQuery("music_links.url = ?", *dbFormatLink)),
 		ports.WithPreload([]string{"Album", "Album.Artists", "MusicLinks", "TrackPreview"}), // Preload related data
 	}
 
@@ -55,7 +62,7 @@ func (r *TrackRepository) GetTrackByID(ctx context.Context, trackID string) (*mo
 
 	err := r.db.FindOne(ctx, &track,
 		ports.WithQuery(ports.NewQuery("id = ?", trackID)),
-		ports.WithPreload([]string{"Album", "Album.Artists", "MusicLinks"}), // Загружаем связанные данные
+		ports.WithPreload([]string{"Album", "Album.Artists", "MusicLinks", "TrackPreview"}), // Загружаем связанные данные
 	)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -69,7 +76,8 @@ func (r *TrackRepository) GetTrackByID(ctx context.Context, trackID string) (*mo
 
 func NewTrackRepository(db ports.DBPort) ITrackRepository {
 	return &TrackRepository{
-		db: db,
+		db:           db,
+		linkFormater: modelutils.NewLinkFormater(),
 	}
 }
 

@@ -1,8 +1,8 @@
-package service
+package modelutils
 
 import (
-	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
@@ -10,8 +10,8 @@ import (
 )
 
 type ILinkFormater interface {
-	identifyMusicServiceByLink(link *url.URL) (model.MusicService, error)
-	identifyAlbumOrTrackByLink(link *url.URL) (*model.MusicRequestType, error)
+	IdentifyMusicServiceByLink(link *url.URL) (model.MusicService, error)
+	IdentifyMusicTypeByLink(link *url.URL) (*model.MusicRequestType, error)
 	FormatLinkForDB(mtype model.MusicRequestType, link *url.URL) (*string, error)
 	FormatLinkFromDBToOutput(dbFormat string, musicSvc model.MusicService) (*string, error)
 }
@@ -20,11 +20,13 @@ type LinkFormater struct {
 }
 
 // identifyAlbumOrTrackByLink implements ILinkFormater.
-func (l *LinkFormater) identifyAlbumOrTrackByLink(link *url.URL) (*model.MusicRequestType, error) {
+func (l *LinkFormater) IdentifyMusicTypeByLink(link *url.URL) (*model.MusicRequestType, error) {
 
 	var musicType model.MusicRequestType
 
-	musicService, err := l.identifyMusicServiceByLink(link)
+	log.Printf("IdentifyMusicTypeByLink: %s", link)
+
+	musicService, err := l.IdentifyMusicServiceByLink(link)
 	if err != nil {
 		return nil, fmt.Errorf("unsupported music service")
 	}
@@ -95,11 +97,10 @@ func (l *LinkFormater) identifyAlbumOrTrackByLink(link *url.URL) (*model.MusicRe
 // FormatLinkForDB implements ILinkFormater.
 func (l *LinkFormater) FormatLinkForDB(mtype model.MusicRequestType, link *url.URL) (*string, error) {
 	var formattedInputLink string
-	var name string
 	var trackID string
 	var albumID string
 
-	musicService, err := l.identifyMusicServiceByLink(link)
+	musicService, err := l.IdentifyMusicServiceByLink(link)
 	if err != nil {
 		return nil, fmt.Errorf("unsupported music service")
 	}
@@ -113,24 +114,21 @@ func (l *LinkFormater) FormatLinkForDB(mtype model.MusicRequestType, link *url.U
 		// Example album with region https://music.apple.com/us/album/lest-we-forget-the-best-of-marilyn-manson/1440746922
 		// Example track https://music.apple.com/song/the-beautiful-people/1440747194
 		// Example album https://music.apple.com/album/lest-we-forget-the-best-of-marilyn-manson/1440746922
+		// Link can be with name or not, so it doesnt matter for work, just save id
 
-		withRegion := len(pathParts) == 5 // main / region / type / name / id
+		// name = pathParts[len(pathParts)-2] // the-beautiful-people
 
-		name = pathParts[len(pathParts)-2] // the-beautiful-people
-
-		if withRegion {
-			// region = pathParts[1] us
-
-			if mtype == model.MusicRequestTrack {
-				trackID = pathParts[len(pathParts)-1] // 1440747194
-				formattedInputLink = "/song/" + name + "/" + trackID
-			} else if mtype == model.MusicRequestAlbum {
-				albumID = pathParts[len(pathParts)-1] // 1440746922
-				formattedInputLink = "/album/" + name + "/" + albumID
-			} else {
-				return nil, fmt.Errorf("wrong link")
-			}
+		if mtype == model.MusicRequestTrack {
+			trackID = pathParts[len(pathParts)-1] // 1440747194
+			formattedInputLink = "/song/" + trackID
+		} else if mtype == model.MusicRequestAlbum {
+			albumID = pathParts[len(pathParts)-1] // 1440746922
+			formattedInputLink = "/album/" + albumID
+		} else {
+			return nil, fmt.Errorf("wrong link")
 		}
+
+		log.Printf(formattedInputLink)
 
 	case model.Yandex:
 		// Yandex Music
@@ -174,20 +172,14 @@ func (l *LinkFormater) FormatLinkForDB(mtype model.MusicRequestType, link *url.U
 		// Example track 			 https://www.deezer.com/track/87938845
 		// Example album 			 https://www.deezer.com/album/8880231
 
-		withRegion := len(pathParts) == 4 // main / region / type / id
-
-		if withRegion {
-			// region = pathParts[1] // us
-
-			if mtype == model.MusicRequestTrack {
-				trackID = pathParts[len(pathParts)-1] // 87938845
-				formattedInputLink = "/track/" + trackID
-			} else if mtype == model.MusicRequestAlbum {
-				albumID = pathParts[len(pathParts)-1] // 8880231
-				formattedInputLink = "/album/" + albumID
-			} else {
-				return nil, fmt.Errorf("wrong link")
-			}
+		if mtype == model.MusicRequestTrack {
+			trackID = pathParts[len(pathParts)-1] // 87938845
+			formattedInputLink = "/track/" + trackID
+		} else if mtype == model.MusicRequestAlbum {
+			albumID = pathParts[len(pathParts)-1] // 8880231
+			formattedInputLink = "/album/" + albumID
+		} else {
+			return nil, fmt.Errorf("wrong link")
 		}
 
 	default:
@@ -203,13 +195,13 @@ func (l *LinkFormater) FormatLinkFromDBToOutput(dbFormat string, musicSvc model.
 
 	switch musicSvc {
 	case model.Apple:
-		formattedOutputLink = string(model.AppleCom) + dbFormat
+		formattedOutputLink = "https://" + string(model.AppleCom) + dbFormat
 	case model.Yandex:
-		formattedOutputLink = string(model.YandexCom) + dbFormat
+		formattedOutputLink = "https://" + string(model.YandexCom) + dbFormat
 	case model.Spotify:
-		formattedOutputLink = string(model.SpotifyCom) + dbFormat
+		formattedOutputLink = "https://" + string(model.OpenSpotifyCom) + dbFormat
 	case model.Deezer:
-		formattedOutputLink = string(model.DeezerLink) + dbFormat
+		formattedOutputLink = "https://" + string(model.DeezerLink) + dbFormat
 	default:
 		return nil, fmt.Errorf("unsupported music service")
 	}
@@ -218,10 +210,22 @@ func (l *LinkFormater) FormatLinkFromDBToOutput(dbFormat string, musicSvc model.
 }
 
 // IdentifyMusicServiceByLink implements ILinkFormater.
-func (l *LinkFormater) identifyMusicServiceByLink(link *url.URL) (model.MusicService, error) {
+func (l *LinkFormater) IdentifyMusicServiceByLink(link *url.URL) (model.MusicService, error) {
 	var streamingService model.MusicService
 
 	host := link.Host
+
+	if host == "" {
+		log.Printf("Ошибка: поле Host у URL пустое. URL: %s", link.String())
+		return model.Unsupported, fmt.Errorf("URL не содержит хост")
+	}
+
+	if strings.HasPrefix(host, "www.") {
+		// Remove the "www." prefix
+		host = strings.TrimPrefix(link.Host, "www.")
+	}
+
+	log.Printf("IdentifyMusicServiceByLink: %s", host)
 
 	// identify music service
 	switch {
@@ -229,14 +233,15 @@ func (l *LinkFormater) identifyMusicServiceByLink(link *url.URL) (model.MusicSer
 		streamingService = model.Apple
 	case strings.Contains(host, string(model.YandexCom)) || strings.Contains(host, string(model.YandexRu)):
 		streamingService = model.Yandex
-	case strings.Contains(host, string(model.SpotifyCom)):
+	case strings.Contains(host, string(model.SpotifyCom)) || strings.Contains(host, string(model.OpenSpotifyCom)):
 		streamingService = model.Spotify
-	case strings.Contains(host, string(model.DeezerLink)) || strings.Contains(host, string(model.DeezerLinkShort)):
+	case strings.Contains(host, string(model.DeezerLink)) || strings.Contains(host, string(model.DeezerLinkShort)) || strings.Contains(host, string(model.DeezerCom)):
 		streamingService = model.Deezer
 	default:
-		fmt.Println("not supported service")
-		return model.Unsupported, errors.New(streamingService.Error())
+		return model.Unsupported, fmt.Errorf("Unsupported service")
+
 	}
+	log.Printf("Identified music service: %v", streamingService)
 
 	return streamingService, nil
 }

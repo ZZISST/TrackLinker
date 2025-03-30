@@ -1,14 +1,13 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/url"
-	"strings"
 	"sync"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/modelutils"
 )
 
 type IParsingMusicService interface {
@@ -23,52 +22,33 @@ type IFullParsingMusicService interface {
 }
 
 type IParsingService interface {
-	getLinks(title, artist string) (*model.LinkData, error)
-	identifyMusicServiceByLink(link *url.URL) (model.MusicService, error)
+	getLinks(title string, artist string) (*model.LinkData, error)
 	getAllData(title, artist string) (*model.ParsedMusic, error)
 	getParsingData(link *url.URL, streamingService model.MusicService) (*model.ParsingData, error)
 	GetMusicData(link *url.URL) (*model.LinkData, *model.ParsedMusic, error)
 }
 
 type ParsingService struct {
-	services   []IParsingMusicService
-	fullParser IFullParsingMusicService
-}
-
-func (p *ParsingService) identifyMusicServiceByLink(link *url.URL) (model.MusicService, error) {
-	var streamingService model.MusicService
-
-	host := link.Host
-
-	// identify music service
-	switch {
-	case strings.Contains(host, string(model.AppleCom)):
-		streamingService = model.Apple
-	case strings.Contains(host, string(model.YandexCom)) || strings.Contains(host, string(model.YandexRu)):
-		streamingService = model.Yandex
-	case strings.Contains(host, string(model.SpotifyCom)):
-		streamingService = model.Spotify
-	case strings.Contains(host, string(model.DeezerLink)) || strings.Contains(host, string(model.DeezerLinkShort)):
-		streamingService = model.Deezer
-	default:
-		fmt.Println("not supported service")
-		return model.Unsupported, errors.New(streamingService.Error())
-	}
-
-	return streamingService, nil
+	services     []IParsingMusicService
+	fullParser   IFullParsingMusicService
+	linkFormater modelutils.ILinkFormater
 }
 
 func (p *ParsingService) GetMusicData(link *url.URL) (*model.LinkData, *model.ParsedMusic, error) {
 
-	streamingService, err := p.identifyMusicServiceByLink(link)
+	log.Printf("Получение данных о треке по ссылке: %s", link)
+	streamingService, err := p.linkFormater.IdentifyMusicServiceByLink(link)
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("ошибка определения сервиса: %w", err)
 	}
+	log.Printf("Определен сервис: %v", streamingService)
 
 	parsingData, err := p.getParsingData(link, streamingService)
 	if err != nil {
 		return nil, nil, fmt.Errorf("ошибка получения данных о треке: %w", err)
 	}
+	log.Printf("Получены данные о треке: %s - %s", parsingData.Title, parsingData.Artist)
 
 	// Получаем ссылки на трек
 	links, err := p.getLinks(parsingData.Title, parsingData.Artist)
@@ -89,12 +69,13 @@ func (p *ParsingService) GetMusicData(link *url.URL) (*model.LinkData, *model.Pa
 
 func NewParsingService(fullParser IFullParsingMusicService, services ...IParsingMusicService) IParsingService {
 	return &ParsingService{
-		fullParser: fullParser,
-		services:   services,
+		fullParser:   fullParser,
+		services:     services,
+		linkFormater: modelutils.NewLinkFormater(),
 	}
 }
 
-func (p *ParsingService) getLinks(title, artist string) (*model.LinkData, error) {
+func (p *ParsingService) getLinks(title string, artist string) (*model.LinkData, error) {
 	ld := &model.LinkData{Links: make(map[string]model.LinkResult)}
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -105,7 +86,30 @@ func (p *ParsingService) getLinks(title, artist string) (*model.LinkData, error)
 		go func(service IParsingMusicService) {
 			defer wg.Done()
 			// Получаем ссылку
-			trackUrl, err := service.GetUrl(title, artist)
+
+			urlStr, err := service.GetUrl(title, artist)
+			if err != nil {
+				log.Printf("Не удалось получить ссылку для '%s - %s' от сервиса %v: %v", title, artist, service.Service(), err)
+				return
+			}
+
+			trackUrl, err := url.Parse(urlStr)
+			if err != nil {
+				log.Printf("Неверная ссылка для '%s - %s' от сервиса %v: %v", title, artist, service.Service(), err)
+				return
+			}
+
+			mtype, err := p.linkFormater.IdentifyMusicTypeByLink(trackUrl)
+			if err != nil {
+				log.Printf("Music Type не определен")
+				return
+			}
+
+			formattedLink, err := p.linkFormater.FormatLinkForDB(*mtype, trackUrl)
+			if err != nil {
+				log.Printf("Неверная ссылка для '%s - %s'", title, artist)
+				return
+			}
 
 			// Определяем "название" сервиса по типу (для демонстрации)
 			serviceName := fmt.Sprintf("%T", service)
@@ -119,7 +123,7 @@ func (p *ParsingService) getLinks(title, artist string) (*model.LinkData, error)
 			// Безопасно записываем результат в карту
 			mu.Lock()
 			ld.Links[serviceName] = model.LinkResult{
-				URL:     trackUrl,
+				URL:     *formattedLink,
 				Service: service.Service(),
 				Error:   err,
 			}
