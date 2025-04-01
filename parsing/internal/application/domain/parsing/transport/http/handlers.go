@@ -28,10 +28,10 @@ func NewParsingHandler(service service.IMusicService) *ParsingHandler {
 //	@Tags		music
 //	@Produce	json
 //	@Param		id	path		string	true	"Music ID"
-//	@Success	200	{object}	dto.Music
+//	@Success	200	{object}	dto.MusicTrack
 //	@Router		/api/v1/music/{id} [get]
 func (h *ParsingHandler) GetMusicByID(c *gin.Context) {
-	var res dto.Music
+	var res dto.MusicTrack
 
 	musicId := c.Param("id")
 
@@ -51,7 +51,7 @@ func (h *ParsingHandler) GetMusicByID(c *gin.Context) {
 //	@Tags		music
 //	@Produce	json
 //	@Param		_	   body		 dto.FindMusicReq	true	"Body"
-//	@Success    200    {object}  dto.Music
+//	@Success    200    {object}  dto.MusicResultDto
 //	@Router     /api/v1/music/track [post]
 func (h *ParsingHandler) FindMusic(c *gin.Context) {
 	var req dto.FindMusicReq
@@ -71,7 +71,7 @@ func (h *ParsingHandler) FindMusic(c *gin.Context) {
 		return
 	}
 
-	music, err := h.service.FindTrack(*parsedURL)
+	music, err := h.service.FindMusic(*parsedURL)
 	if err != nil {
 		return
 	}

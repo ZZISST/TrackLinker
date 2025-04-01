@@ -10,11 +10,6 @@ type MusicServiceDictionary struct {
 
 type MusicService string
 
-// Error implements error.
-func (m MusicService) Error() string {
-	panic("Unsupported music service")
-}
-
 const (
 	Apple       MusicService = "Apple"
 	Yandex      MusicService = "Yandex"
@@ -25,18 +20,15 @@ const (
 
 type MusicServiceLink string
 
-// Error implements error.
-func (m MusicServiceLink) Error() string {
-	panic("Unsupported music service link")
-}
-
 const (
 	AppleCom        MusicServiceLink = "music.apple.com"
 	SpotifyCom      MusicServiceLink = "spotify.com"
+	OpenSpotifyCom  MusicServiceLink = "open.spotify.com"
 	YandexCom       MusicServiceLink = "music.yandex.com"
 	YandexRu        MusicServiceLink = "music.yandex.ru"
 	DeezerLink      MusicServiceLink = "deezer.page.link"
 	DeezerLinkShort MusicServiceLink = "dzr.page.link"
+	DeezerCom       MusicServiceLink = "deezer.com"
 	UnsupportedLink MusicServiceLink = "Unsupported"
 )
 

@@ -8,15 +8,23 @@ type MusicLink struct {
 	URL     string       `json:"url"`
 
 	// One music link belongs to one track
-	TrackID string `json:"track_id" gorm:"index"`
-	Track   Track  `json:"track" gorm:"constraint:OnDelete:CASCADE;"`
+	OwnerID   string `json:"owner_id" gorm:"index"`
+	OwnerType string `json:"owner_type" gorm:"index"`
 }
 
-func NewMusicLink(service MusicService, url string, trackId string) MusicLink {
+type OwnerType string
+
+const (
+	OwnerTypeTrack OwnerType = "track"
+	OwnerTypeAlbum OwnerType = "album"
+)
+
+func NewMusicLink(service MusicService, url string, ownerID string, ownerType string) MusicLink {
 	return MusicLink{
-		ID:      uuid.New().String(),
-		Service: service,
-		URL:     url,
-		TrackID: trackId,
+		ID:        uuid.New().String(),
+		Service:   service,
+		URL:       url,
+		OwnerID:   ownerID,
+		OwnerType: ownerType,
 	}
 }

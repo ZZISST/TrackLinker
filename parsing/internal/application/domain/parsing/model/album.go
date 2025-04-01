@@ -14,8 +14,9 @@ type Album struct {
 	ReleasedAt time.Time `json:"released_at"`
 	CreatedAt  time.Time `json:"created_at"`
 
-	Artists []Artist `json:"artists" gorm:"many2many:album_artists;"`
-	Tracks  []Track  `json:"tracks" gorm:"foreignKey:AlbumID"`
+	Artists    []Artist    `json:"artists" gorm:"many2many:album_artists;"`
+	Tracks     []Track     `json:"tracks" gorm:"foreignKey:AlbumID"`
+	MusicLinks []MusicLink `json:"music_links" gorm:"polymorphic:Owner;"`
 }
 
 func NewAlbum(title string, artistId string, coverImage string, releasedAt time.Time) Album {
