@@ -16,7 +16,7 @@ type Album struct {
 
 	Artists    []Artist    `json:"artists" gorm:"many2many:album_artists;"`
 	Tracks     []Track     `json:"tracks" gorm:"foreignKey:AlbumID"`
-	MusicLinks []MusicLink `json:"music_links" gorm:"polymorphic:Owner;"`
+	MusicLinks []MusicLink `json:"music_links" gorm:"polymorphicType:OwnerType;polymorphicId:OwnerID;polymorphicValue:album"`
 }
 
 func NewAlbum(title string, artistId string, coverImage string, releasedAt time.Time) Album {

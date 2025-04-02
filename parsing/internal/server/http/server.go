@@ -13,6 +13,7 @@ import (
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	_ "gitlab.com/etherealSent/tracklinker-backend/parsing/docs"
 )
 
 type Server struct {

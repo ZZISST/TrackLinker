@@ -40,7 +40,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.Music"
+                            "$ref": "#/definitions/dto.MusicResultDto"
                         }
                     }
                 }
@@ -68,7 +68,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.Music"
+                            "$ref": "#/definitions/dto.MusicTrack"
                         }
                     }
                 }
@@ -84,7 +84,20 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.Music": {
+        "dto.MusicResultDto": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "в зависимости от типа здесь будет другой JSON",
+                    "type": "object"
+                },
+                "type": {
+                    "description": "\"track\", \"album\", \"playlist\"",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.MusicTrack": {
             "type": "object",
             "properties": {
                 "album": {
@@ -105,8 +118,11 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "song_id": {
+                "track_id": {
                     "type": "string"
+                },
+                "track_number": {
+                    "type": "integer"
                 },
                 "track_preview": {
                     "$ref": "#/definitions/model.TrackPreview"
@@ -133,6 +149,12 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "music_links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.MusicLink"
+                    }
                 },
                 "released_at": {
                     "type": "string"
@@ -177,11 +199,11 @@ const docTemplate = `{
                 "music_service": {
                     "$ref": "#/definitions/model.MusicService"
                 },
-                "track": {
-                    "$ref": "#/definitions/model.Track"
-                },
-                "track_id": {
+                "owner_id": {
                     "description": "One music link belongs to one track",
+                    "type": "string"
+                },
+                "owner_type": {
                     "type": "string"
                 },
                 "url": {
@@ -227,6 +249,9 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "track_number": {
+                    "type": "integer"
                 },
                 "track_preview_id": {
                     "$ref": "#/definitions/model.TrackPreview"
