@@ -37,8 +37,13 @@ func (r *TrackRepository) GetTrackByMusicLink(ctx context.Context, musicLink url
 
 	opts := []ports.FindOption{
 		ports.WithJoin("JOIN music_links ON music_links.owner_id = tracks.id"),
-		ports.WithQuery(ports.NewQuery("music_links.url = ?", *dbFormatLink)),
-		ports.WithPreload([]string{"Album", "Album.Artists", "MusicLinks", "TrackPreview"}), // Preload related data
+		ports.WithPreload([]string{
+			"Album",
+			"Album.Artists",
+			"TrackPreview",
+			"MusicLinks",
+		}),
+		ports.WithQuery(ports.NewQuery("music_links.url = ?", *dbFormatLink)), // Add owner_type condition
 	}
 
 	if err := r.db.FindOne(ctx, &track, opts...); err != nil {
@@ -62,8 +67,12 @@ func (r *TrackRepository) GetTrackByID(ctx context.Context, trackID string) (*mo
 
 	err := r.db.FindOne(ctx, &track,
 		ports.WithQuery(ports.NewQuery("id = ?", trackID)),
-		ports.WithPreload([]string{"Album", "Album.Artists", "MusicLinks", "TrackPreview"}), // Загружаем связанные данные
-	)
+		ports.WithPreload([]string{
+			"Album",
+			"Album.Artists",
+			"TrackPreview",
+			"MusicLinks",
+		}))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil // Трек не найден

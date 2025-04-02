@@ -24,7 +24,7 @@ func main() {
 		log.Fatal("Database connection fail", err)
 	}
 
-	err = db.AutoMigrate(&model.Album{}, model.TrackPreview{}, &model.Track{}, model.MusicLink{}, model.Artist{})
+	err = db.AutoMigrate(&model.Album{}, &model.TrackPreview{}, &model.Track{}, &model.MusicLink{}, &model.Artist{})
 	if err != nil {
 		log.Fatal("Database connection fail", err)
 	}

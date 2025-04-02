@@ -5,10 +5,9 @@ import (
 )
 
 type Artist struct {
-	ID     string `json:"id" gorm:"unique;not null;index;primary_key"`
-	Name   string `json:"name"`
-	Avatar string `json:"avatar"`
-
+	ID     string  `json:"id" gorm:"unique;not null;index;primary_key"`
+	Name   string  `json:"name"`
+	Avatar string  `json:"avatar"`
 	Albums []Album `json:"albums" gorm:"many2many:album_artists;"`
 }
 

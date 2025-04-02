@@ -105,7 +105,9 @@ func (l *LinkFormater) FormatLinkForDB(mtype model.MusicRequestType, link *url.U
 		return nil, fmt.Errorf("unsupported music service")
 	}
 
-	pathParts := strings.Split(link.Path, "/")
+	cleanPath := strings.Split(link.Path, "?")[0]
+
+	pathParts := strings.Split(cleanPath, "/")
 
 	switch musicService {
 	case model.Apple:
