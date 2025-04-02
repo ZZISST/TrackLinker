@@ -176,6 +176,15 @@ func (m MusicService) GetTrackByID(ctx context.Context, id string) (*dto.MusicTr
 		return nil, err
 	}
 
+	for i := range track.MusicLinks {
+		formattedOutputLink, err := m.LinkFormater.FormatLinkFromDBToOutput(track.MusicLinks[i].URL, track.MusicLinks[i].Service)
+		if err != nil {
+			return nil, fmt.Errorf("failed to format link from db to output: %w", err)
+		}
+
+		track.MusicLinks[i].URL = *formattedOutputLink
+	}
+
 	return &dto.MusicTrack{
 		TrackID:      track.ID,
 		Album:        track.Album,
