@@ -16,7 +16,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/music/track": {
+        "/api/v1/music/find": {
             "post": {
                 "produces": [
                     "application/json"

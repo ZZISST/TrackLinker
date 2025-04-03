@@ -157,7 +157,7 @@ paths:
       summary: get music details
       tags:
       - music
-  /api/v1/music/track:
+  /api/v1/music/find:
     post:
       parameters:
       - description: Body

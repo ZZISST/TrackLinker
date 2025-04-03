@@ -9,7 +9,7 @@
     },
     "basePath": "/api/v1",
     "paths": {
-        "/api/v1/music/track": {
+        "/api/v1/music/find": {
             "post": {
                 "produces": [
                     "application/json"

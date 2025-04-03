@@ -35,6 +35,6 @@ func Routes(r *gin.RouterGroup, db ports.DBPort, s3 ports.S3Port) {
 	musicRoute := r.Group("/music")
 	{
 		musicRoute.GET("/:id", parsingHandler.GetMusicByID)
-		musicRoute.POST("/track", parsingHandler.FindMusic)
+		musicRoute.POST("/find", parsingHandler.FindMusic)
 	}
 }

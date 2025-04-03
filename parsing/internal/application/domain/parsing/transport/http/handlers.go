@@ -52,7 +52,7 @@ func (h *ParsingHandler) GetMusicByID(c *gin.Context) {
 //	@Produce	json
 //	@Param		_	   body		 dto.FindMusicReq	true	"Body"
 //	@Success    200    {object}  dto.MusicResultDto
-//	@Router     /api/v1/music/track [post]
+//	@Router     /api/v1/music/find [post]
 func (h *ParsingHandler) FindMusic(c *gin.Context) {
 	var req dto.FindMusicReq
 	if err := c.ShouldBindJSON(&req); err != nil {
