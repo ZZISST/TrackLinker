@@ -10,7 +10,7 @@ type Track struct {
 	TrackPreview TrackPreview `json:"track_preview_id" gorm:"foreignKey:TrackID"`
 	AlbumID      string       `json:"album_id" gorm:"index"` // Foreign key
 	Album        Album        `json:"album" gorm:"constraint:OnDelete:CASCADE;"`
-	MusicLinks   []MusicLink  `json:"music_links" gorm:"polymorphicType:OwnerType;polymorphicId:OwnerID;polymorphicValue:master"`
+	MusicLinks   []MusicLink  `json:"music_links" gorm:"polymorphicType:OwnerType;polymorphicId:OwnerID;polymorphicValue:track"`
 }
 
 type TrackPreview struct {

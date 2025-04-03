@@ -31,6 +31,7 @@ type MusicService struct {
 	ArtistRepo       repository.IArtistRepository
 	MusicLinkRepo    repository.IMusicLinkRepository
 	TrackPreviewRepo repository.ITrackPreviewRepository
+	AlbumArtistRepo  repository.IAlbumArtistRepository
 	ParsingSvc       IParsingService
 	CloudSvc         ICloudService
 	LinkFormater     modelutils.ILinkFormater
@@ -98,6 +99,16 @@ func (m MusicService) findTrack(ctx context.Context, link url.URL, mtype model.M
 	if track == nil {
 		return nil, fmt.Errorf("track not found for link: %s", link.String())
 	} else {
+
+		for i := range track.MusicLinks {
+			formattedOutputLink, err := m.LinkFormater.FormatLinkFromDBToOutput(track.MusicLinks[i].URL, track.MusicLinks[i].Service)
+			if err != nil {
+				return nil, fmt.Errorf("failed to format link from db to output: %w", err)
+			}
+
+			track.MusicLinks[i].URL = *formattedOutputLink
+		}
+
 		music = &dto.MusicTrack{
 			TrackID:      track.ID,
 			Album:        track.Album,
@@ -163,6 +174,15 @@ func (m MusicService) GetTrackByID(ctx context.Context, id string) (*dto.MusicTr
 	track, err := m.TrackRepo.GetTrackByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range track.MusicLinks {
+		formattedOutputLink, err := m.LinkFormater.FormatLinkFromDBToOutput(track.MusicLinks[i].URL, track.MusicLinks[i].Service)
+		if err != nil {
+			return nil, fmt.Errorf("failed to format link from db to output: %w", err)
+		}
+
+		track.MusicLinks[i].URL = *formattedOutputLink
 	}
 
 	return &dto.MusicTrack{
@@ -249,6 +269,12 @@ func (m MusicService) upsertTrack(ctx context.Context, data *model.ParsedMusic, 
 			}
 		}
 
+		for _, artist := range music.Artists {
+			if err := m.AlbumArtistRepo.AddRelation(ctx, music.Album.ID, artist.ID); err != nil {
+				log.Printf("Failed to add relation between album %s and artist %s: %v", music.Album.ID, artist.ID, err)
+				return fmt.Errorf("failed to add relation for artist %s: %w", artist.ID, err)
+			}
+		}
 		newTrack := model.NewTrack(data.Title, music.Album.ID)
 		if err := m.TrackRepo.Create(ctx, &newTrack); err != nil {
 			return fmt.Errorf("failed to create track: %w", err)
@@ -309,13 +335,14 @@ func (m MusicService) upsertTrack(ctx context.Context, data *model.ParsedMusic, 
 	return &music, nil
 }
 
-func NewMusicService(trackRepo repository.ITrackRepository, artistRepo repository.IArtistRepository, albumRepo repository.IAlbumRepository, musicLinkRepo repository.IMusicLinkRepository, trackPreviewRepo repository.ITrackPreviewRepository, parsingSvc IParsingService, cloudSvc ICloudService) IMusicService {
+func NewMusicService(trackRepo repository.ITrackRepository, artistRepo repository.IArtistRepository, albumRepo repository.IAlbumRepository, musicLinkRepo repository.IMusicLinkRepository, trackPreviewRepo repository.ITrackPreviewRepository, albumArtistRepo repository.IAlbumArtistRepository, parsingSvc IParsingService, cloudSvc ICloudService) IMusicService {
 	return MusicService{
 		TrackRepo:        trackRepo,
 		AlbumRepo:        albumRepo,
 		ArtistRepo:       artistRepo,
 		MusicLinkRepo:    musicLinkRepo,
 		TrackPreviewRepo: trackPreviewRepo,
+		AlbumArtistRepo:  albumArtistRepo,
 		ParsingSvc:       parsingSvc,
 		CloudSvc:         cloudSvc,
 		LinkFormater:     modelutils.NewLinkFormater(),

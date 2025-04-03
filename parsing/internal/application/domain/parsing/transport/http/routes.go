@@ -13,6 +13,7 @@ func Routes(r *gin.RouterGroup, db ports.DBPort, s3 ports.S3Port) {
 	trackRepo := repository.NewTrackRepository(db)
 	musicLinkRepo := repository.NewMusicLinkRepository(db)
 	trackPreviewRepo := repository.NewTrackPreviewRepository(db)
+	albumArtistRepo := repository.NewAlbumArtistRepository(db)
 
 	spotifyAuthSvc := service.NewSpotifyAuthService()
 	spotifySvc := service.NewSpotifyService(spotifyAuthSvc)
@@ -27,13 +28,13 @@ func Routes(r *gin.RouterGroup, db ports.DBPort, s3 ports.S3Port) {
 
 	cloudSvc := service.NewYandexCloudService(s3)
 
-	musicSvc := service.NewMusicService(trackRepo, artistRepo, albumRepo, musicLinkRepo, trackPreviewRepo, parsingSvc, cloudSvc)
+	musicSvc := service.NewMusicService(trackRepo, artistRepo, albumRepo, musicLinkRepo, trackPreviewRepo, albumArtistRepo, parsingSvc, cloudSvc)
 
 	parsingHandler := NewParsingHandler(musicSvc)
 
 	musicRoute := r.Group("/music")
 	{
 		musicRoute.GET("/:id", parsingHandler.GetMusicByID)
-		musicRoute.POST("/track", parsingHandler.FindMusic)
+		musicRoute.POST("/find", parsingHandler.FindMusic)
 	}
 }

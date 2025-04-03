@@ -5,7 +5,16 @@ definitions:
       link:
         type: string
     type: object
-  dto.Music:
+  dto.MusicResultDto:
+    properties:
+      data:
+        description: в зависимости от типа здесь будет другой JSON
+        type: object
+      type:
+        description: '"track", "album", "playlist"'
+        type: string
+    type: object
+  dto.MusicTrack:
     properties:
       album:
         $ref: '#/definitions/model.Album'
@@ -19,8 +28,10 @@ definitions:
         type: array
       name:
         type: string
-      song_id:
+      track_id:
         type: string
+      track_number:
+        type: integer
       track_preview:
         $ref: '#/definitions/model.TrackPreview'
     type: object
@@ -38,6 +49,10 @@ definitions:
         type: string
       id:
         type: string
+      music_links:
+        items:
+          $ref: '#/definitions/model.MusicLink'
+        type: array
       released_at:
         type: string
       title:
@@ -66,10 +81,10 @@ definitions:
         type: string
       music_service:
         $ref: '#/definitions/model.MusicService'
-      track:
-        $ref: '#/definitions/model.Track'
-      track_id:
+      owner_id:
         description: One music link belongs to one track
+        type: string
+      owner_type:
         type: string
       url:
         type: string
@@ -103,6 +118,8 @@ definitions:
         type: array
       title:
         type: string
+      track_number:
+        type: integer
       track_preview_id:
         $ref: '#/definitions/model.TrackPreview'
     type: object
@@ -136,11 +153,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.Music'
+            $ref: '#/definitions/dto.MusicTrack'
       summary: get music details
       tags:
       - music
-  /api/v1/music/track:
+  /api/v1/music/find:
     post:
       parameters:
       - description: Body
@@ -155,7 +172,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.Music'
+            $ref: '#/definitions/dto.MusicResultDto'
       summary: get music
       tags:
       - music

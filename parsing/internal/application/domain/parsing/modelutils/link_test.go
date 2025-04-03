@@ -102,6 +102,8 @@ func TestFormatLinkForDB(t *testing.T) {
 		{"Deezer Album", "https://www.deezer.com/album/8880231", model.MusicRequestAlbum, "/album/8880231", false},
 		{"Deezer Track", "https://www.deezer.com/track/87938845", model.MusicRequestTrack, "/track/87938845", false},
 		{"Unsupported Link", "https://unsupported.service.com/track/12345", model.MusicRequestTrack, "", true},
+		{"Spotify Track With Argument", "https://open.spotify.com/track/1eBotbOOYhgcz0dNyiYt6p?si=9a83805bcdd84362", model.MusicRequestTrack, "/track/1eBotbOOYhgcz0dNyiYt6p", false},
+		{"Spotify Track With Argument", "https://music.yandex.ru/album/6097952/track/35681869?utm_source=web&utm_medium=copy_link", model.MusicRequestTrackInAlbum, "/album/6097952/track/35681869", false},
 	}
 
 	for _, tt := range tests {

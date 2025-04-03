@@ -20,8 +20,9 @@ const DatabaseTimeout = 5 * time.Second
 
 func NewAdapter(dsn string) (*Adapter, error) {
 	db, openErr := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: gormLogger.Default.LogMode(gormLogger.Warn),
+		Logger: gormLogger.Default.LogMode(gormLogger.Info),
 	})
+
 	if openErr != nil {
 		return nil, fmt.Errorf("db connection error: %v", openErr)
 	}
@@ -59,8 +60,14 @@ func (d *Adapter) WithTransaction(function func() error) error {
 	return nil
 }
 
-func (d *Adapter) Preload(query string, args ...interface{}) *Adapter {
-	d.db.Preload(query, args...)
+func (d *Adapter) Preload(relation string, conditions ...interface{}) *Adapter {
+	if len(conditions) > 0 {
+		// If conditions are provided, pass them to the Preload method
+		d.db = d.db.Preload(relation, conditions...)
+	} else {
+		// If no conditions are provided, preload the relation without conditions
+		d.db = d.db.Preload(relation)
+	}
 	return d
 }
 

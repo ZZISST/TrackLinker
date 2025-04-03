@@ -18,8 +18,8 @@ type MusicTrack struct {
 }
 
 type MusicResultDto struct {
-	Type string          `json:"type" gorm:"-"` // "track", "album", "playlist"
-	Data json.RawMessage `json:"data" gorm:"-"` // в зависимости от типа здесь будет другой JSON
+	Type string          `json:"type" gorm:"-"`                      // "track", "album", "playlist"
+	Data json.RawMessage `json:"data" gorm:"-" swaggertype:"object"` // в зависимости от типа здесь будет другой JSON
 }
 
 type MusicAlbum struct {
@@ -29,9 +29,9 @@ type MusicAlbum struct {
 	ReleasedAt time.Time `json:"released_at"`
 	CreatedAt  time.Time `json:"created_at"`
 
-	Artists []model.Artist    `json:"artists" gorm:"-"`
-	Links   []model.MusicLink `json:"links" gorm:"-"`
-	Tracks  []model.Track     `json:"tracks" gorm:"-"`
+	Artists []model.Artist    `json:"artists" gorm:"-" swaggertype:"array,string"`
+	Links   []model.MusicLink `json:"links" gorm:"-" swaggertype:"array,string"`
+	Tracks  []model.Track     `json:"tracks" gorm:"-" swaggertype:"array,string"`
 }
 
 type FindMusicReq struct {
