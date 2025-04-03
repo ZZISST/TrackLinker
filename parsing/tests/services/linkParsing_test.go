@@ -4,13 +4,13 @@ import (
 	"net/url"
 	"testing"
 
-	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
-	service "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/service"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/modelutils"
 )
 
 func TestFormatLinkForDB(t *testing.T) {
-	linkFormatter := service.NewLinkFormater()
+	linkFormatter := modelutils.NewLinkFormater()
 	tests := []struct {
 		name     string
 		input    string
@@ -22,7 +22,7 @@ func TestFormatLinkForDB(t *testing.T) {
 			"Apple Music Track",
 			"https://music.apple.com/us/song/the-beautiful-people/1440747194",
 			model.MusicRequestTrack,
-			"/song/the-beautiful-people/1440747194",
+			"/song/1440747194",
 			false,
 		},
 		{
@@ -72,7 +72,7 @@ func TestFormatLinkForDB(t *testing.T) {
 }
 
 func TestFormatLinkFromDBToOutput(t *testing.T) {
-	linkFormatter := service.NewLinkFormater()
+	linkFormatter := modelutils.NewLinkFormater()
 	tests := []struct {
 		name      string
 		input     string
