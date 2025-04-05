@@ -21,24 +21,38 @@ var (
 )
 
 type Schema struct {
-	Environment string `env:"environment"`
-	HttpPort    int    `env:"http_port"`
-	GrpcPort    int    `env:"grpc_port"`
-	DatabaseURI string `env:"database_uri"`
-	S3Bucket    string `env:"s3_bucket"`
-	S3Region    string `env:"s3_region"`
-	S3Endpoint  string `env:"s3_endpoint"`
-	S3AccessKey string `env:"s3_access_key"`
-	S3SecretKey string `env:"s3_secret_key"`
+	Environment         string `env:"ENVIROMENRT"`
+	SpotifyClientID     string `env:"SPOTIFY_CLIENT_ID"`
+	SpotifyClientSecret string `env:"SPOTIFY_CLIENT_SECRET"`
+	ProxyURL            string `env:"PROXY_URL"`
+	DatabaseURI         string `env:"DATABASE_URI"`
+	S3Bucket            string `env:"S3_BUCKET"`
+	S3Region            string `env:"S3_REGION"`
+	S3Endpoint          string `env:"S3_ENDPOINT"`
+	S3AccessKey         string `env:"S3_ACCESS_KEY"`
+	S3SecretKey         string `env:"S3_SECRET_KEY"`
 }
 
-func LoadConfig() *Schema {
+func LoadConfig(environment string) *Schema {
 	_, filename, _, _ := runtime.Caller(0)
-	currentDir := filepath.Dir(filename)
 
-	err := godotenv.Load(filepath.Join(currentDir, "config.yaml"))
+	// .env in root
+	currentDir := filepath.Join(filepath.Dir(filename), "../..")
+	currentDir, err := filepath.Abs(currentDir)
 	if err != nil {
-		log.Printf("Error on load configuration file, error: %v", err)
+		log.Fatalf("Error resolving absolute path: %v", err)
+	}
+
+	if environment == "" {
+		err := godotenv.Load(filepath.Join(currentDir, ".env.dev"))
+		if err != nil {
+			log.Printf("Error on load dev configuration file, error: %v", err)
+		}
+	} else {
+		err := godotenv.Load(filepath.Join(currentDir, ".env.prod"))
+		if err != nil {
+			log.Printf("Error on load prod configuration file, error: %v", err)
+		}
 	}
 
 	if err := env.Parse(&cfg); err != nil {

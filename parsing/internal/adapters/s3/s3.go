@@ -24,11 +24,11 @@ func NewAdapter(config config.Schema) *Adapter {
 }
 
 func (a *Adapter) UploadTrackPreview(mp3URL, title, artist string) (previewAudioUrl *string, err error) {
-	bucket := "track-previews"
-	region := "ru-central1"
-	endpoint := "https://storage.yandexcloud.net"
-	accessKey := "REDACTED"
-	secretKey := "REDACTED"
+	bucket := a.config.S3Bucket
+	region := a.config.S3Region
+	endpoint := a.config.S3Endpoint
+	accessKey := a.config.S3AccessKey
+	secretKey := a.config.S3SecretKey
 
 	fileKey := "tracks/previews/" + title + " " + artist + ".mp3"
 	preview := "https://" + bucket + ".storage.yandexcloud.net/" + fileKey

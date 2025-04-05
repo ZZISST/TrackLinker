@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/config"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/utils"
 )
 
@@ -17,12 +18,13 @@ import (
 type SpotifyAuthService struct {
 	AccessToken string
 	ExpiresAt   time.Time
+	cfg         *config.Schema
 }
 
 // authenticate получает новый access token.
 func (s *SpotifyAuthService) authenticate() error {
-	clientID := "REDACTED"
-	clientSecret := "REDACTED"
+	clientID := s.cfg.SpotifyClientID
+	clientSecret := s.cfg.SpotifyClientSecret
 
 	data := url.Values{}
 	data.Set("grant_type", "client_credentials")
@@ -72,7 +74,9 @@ func (s *SpotifyAuthService) GetValidToken() (string, error) {
 }
 
 // GetTrackInfo получает название трека и имя артиста по ID трека.
-func GetTrackInfo(trackUrl string) (string, string, error) {
+func (s *SpotifyAuthService) GetTrackInfo(trackUrl string) (string, string, error) {
+	proxy := s.cfg.ProxyURL
+
 	service := &SpotifyAuthService{}
 	token, err := service.GetValidToken()
 	if err != nil {
@@ -98,7 +102,7 @@ func GetTrackInfo(trackUrl string) (string, string, error) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/json")
 
-	proxyUrl, _ := url.Parse("http://C13Bo2:M3b6Zo@138.0.241.86:8000")
+	proxyUrl, _ := url.Parse(proxy)
 
 	client := utils.CreateHTTPClient(proxyUrl)
 	resp, err := client.Do(req)
@@ -187,5 +191,7 @@ func SpotifyTrackUrl(title, artist string) (string, error) {
 }
 
 func NewSpotifyAuthService() SpotifyAuthService {
-	return SpotifyAuthService{}
+	return SpotifyAuthService{
+		cfg: config.GetConfig(),
+	}
 }

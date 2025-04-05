@@ -17,9 +17,9 @@ import (
 
 // @BasePath	/api/v1
 func main() {
-	cfg := config.LoadConfig()
+	cfg := config.LoadConfig("")
 
-	db, err := db.NewAdapter("host=localhost user=postgres password=p4ssw0rd dbname=tracks_db port=5433 sslmode=disable TimeZone=Europe/Moscow")
+	db, err := db.NewAdapter(cfg.DatabaseURI)
 	if err != nil {
 		log.Fatal("Database connection fail", err)
 	}

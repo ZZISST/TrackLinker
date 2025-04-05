@@ -11,11 +11,13 @@ import (
 	"strings"
 
 	m2 "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/config"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/utils"
 )
 
 type SpotifyService struct {
 	authService SpotifyAuthService
+	cfg         *config.Schema
 }
 
 func (s *SpotifyService) Service() m2.MusicService {
@@ -23,6 +25,7 @@ func (s *SpotifyService) Service() m2.MusicService {
 }
 
 func (s *SpotifyService) GetData(trackUrl string) (title string, artist string, err error) {
+	proxy := s.cfg.ProxyURL
 	service := s.authService
 
 	token, err := service.GetValidToken()
@@ -49,7 +52,7 @@ func (s *SpotifyService) GetData(trackUrl string) (title string, artist string, 
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/json")
 
-	proxyUrl, _ := url.Parse("http://C13Bo2:M3b6Zo@138.0.241.86:8000")
+	proxyUrl, _ := url.Parse(proxy)
 
 	client := utils.CreateHTTPClient(proxyUrl)
 	resp, err := client.Do(req)
@@ -82,6 +85,7 @@ func (s *SpotifyService) GetData(trackUrl string) (title string, artist string, 
 }
 
 func (s *SpotifyService) GetUrl(title, artist string) (TrackUrl string, err error) {
+	proxy := s.cfg.ProxyURL
 	service := s.authService
 	token, err := service.GetValidToken()
 	if err != nil {
@@ -99,7 +103,7 @@ func (s *SpotifyService) GetUrl(title, artist string) (TrackUrl string, err erro
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/json")
 
-	proxyUrl, _ := url.Parse("http://C13Bo2:M3b6Zo@138.0.241.86:8000")
+	proxyUrl, _ := url.Parse(proxy)
 
 	client := utils.CreateHTTPClient(proxyUrl)
 	resp, err := client.Do(req)
@@ -140,5 +144,6 @@ func (s *SpotifyService) GetUrl(title, artist string) (TrackUrl string, err erro
 func NewSpotifyService(auth SpotifyAuthService) IParsingMusicService {
 	return &SpotifyService{
 		authService: auth,
+		cfg:         config.GetConfig(),
 	}
 }
