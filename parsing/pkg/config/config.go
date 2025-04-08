@@ -31,6 +31,7 @@ type Schema struct {
 	S3Endpoint          string `env:"S3_ENDPOINT"`
 	S3AccessKey         string `env:"S3_ACCESS_KEY"`
 	S3SecretKey         string `env:"S3_SECRET_KEY"`
+	SwaggerHost         string `env:"SWAGGER_HOST"`
 }
 
 func LoadConfig(environment string) *Schema {
