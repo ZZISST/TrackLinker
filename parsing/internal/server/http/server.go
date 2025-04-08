@@ -2,18 +2,18 @@ package http
 
 import (
 	"log"
-	// "net/http"
+	"time"
+
+	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/docs"
+	_ "gitlab.com/etherealSent/tracklinker-backend/parsing/docs"
 	parsingHttp "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/transport/http"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/ports"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/config"
-
-	// "gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/response"
-
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-	_ "gitlab.com/etherealSent/tracklinker-backend/parsing/docs"
 )
 
 type Server struct {
@@ -33,18 +33,37 @@ func NewServer(db ports.DBPort, s3 ports.S3Port) *Server {
 }
 
 func (s Server) Run() error {
-	// _ = s.engine.SetTrustedProxies(nil)
-	// if s.cfg.Environment == config.ProductionEnv {
-	// gin.SetMode(gin.ReleaseMode)
-	// }
+
+	docs.SwaggerInfo.Host = s.cfg.SwaggerHost
+
+	if s.cfg.Environment == config.ProductionEnv {
+		docs.SwaggerInfo.BasePath = "/"              // adjust if your API is under a sub-path
+		docs.SwaggerInfo.Schemes = []string{"https"} // use https since you're using SSL
+	}
 
 	gin.SetMode(gin.ReleaseMode)
 	log.Printf("Gin is running in %s mode", gin.Mode())
 
+	if s.cfg.Environment == config.ProductionEnv {
+		s.engine.Use(cors.New(cors.Config{
+			AllowOrigins:     []string{"https://tracklinker.ru", "*"},
+			AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}))
+	}
+
 	if err := s.MapRoutes(); err != nil {
 		log.Fatalf("MapRoutes Error: %v", err)
 	}
-	s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	if s.cfg.Environment == config.ProductionEnv {
+		s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("https://tracklinker.ru/swagger/doc.json")))
+	} else {
+		s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 
 	return s.engine.Run("0.0.0.0" + ":" + "8080")
 }
