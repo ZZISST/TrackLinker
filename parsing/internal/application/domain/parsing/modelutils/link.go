@@ -203,7 +203,7 @@ func (l *LinkFormater) FormatLinkFromDBToOutput(dbFormat string, musicSvc model.
 	case model.Spotify:
 		formattedOutputLink = "https://" + string(model.OpenSpotifyCom) + dbFormat
 	case model.Deezer:
-		formattedOutputLink = "https://" + string(model.DeezerLink) + dbFormat
+		formattedOutputLink = "https://" + string(model.DeezerCom) + dbFormat
 	default:
 		return nil, fmt.Errorf("unsupported music service")
 	}

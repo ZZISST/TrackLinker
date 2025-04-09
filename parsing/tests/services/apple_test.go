@@ -24,19 +24,19 @@ func (m *MockAppleMusicService) Service() model.MusicService {
 
 func TestGetUrl_AppleMusic(t *testing.T) {
 	service := &MockAppleMusicService{}
-	url, err := service.GetUrl("Big Ballaa (feat. Tezzus)", "Brennan Jones")
+	url, err := service.GetUrl("Still Don't Know My Name", "Labrinth")
 
 	assert.NoError(t, err)
-	assert.Equal(t, "https://music.apple.com/us/song/1795507401", url)
+	assert.Equal(t, "https://music.apple.com/us/song/1481092695", url)
 }
 
 func TestGetData_AppleMusic(t *testing.T) {
 	service := &MockAppleMusicService{}
-	title, artist, err := service.GetData("https://music.apple.com/us/song/1795507401")
+	title, artist, err := service.GetData("https://music.apple.com/ru/album/still-dont-know-my-name/1481092579?i=1481092695")
 
 	assert.NoError(t, err)
-	assert.Equal(t, "Big Ballaa (feat. Tezzus)", title)
-	assert.Equal(t, "Big Ballaa (feat. Tezzus) - Single", artist)
+	assert.Equal(t, "Still Don't Know My Name", title)
+	assert.Equal(t, "Labrinth", artist)
 }
 
 
