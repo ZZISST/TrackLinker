@@ -25,8 +25,11 @@ func (s *CollectionService) ProcessParsingTrackRequest(ctx context.Context, d co
 	var requestData dto.RequestParsing
 
 	if err := json.Unmarshal(d.Body, &requestData); err != nil {
+		log.Printf("Ошибка парсинга JSON: %v", err)
 		return nil
 	}
+
+	log.Printf("Обработка запроса: Name=%s, Artists=%s", requestData.Name, requestData.Artists)
 
 	musicTrack, err := s.musicService.findTrackByData(ctx, requestData.Name, requestData.Artists)
 	if err != nil {
@@ -43,29 +46,29 @@ func (s *CollectionService) ProcessParsingTrackRequest(ctx context.Context, d co
 		return fmt.Errorf("error sending parsing response: %w", err)
 	}
 
+	log.Printf("Ответ успешно отправлен для CorrelationId=%s", d.CorrelationId)
 	return nil
 }
 
 func (s *CollectionService) ListenQueue() {
-	go func() error {
+	go func() {
 
 		msgs, err := s.collection.Subscribe()
 		if err != nil {
-			return err
+			log.Printf("Ошибка подписки на очередь: %v", err)
+			return
 		}
 
-		go func() {
-			for d := range msgs {
-				ctx := context.Background()
-				// Вызов ProcessParsingTrackRequest для обработки запроса
-				err := s.ProcessParsingTrackRequest(ctx, d)
-				if err != nil {
-					log.Printf("Error processing parsing request: %v", err)
-				}
+		log.Println("Начало прослушивания очереди parsing.queue")
+		for d := range msgs {
+			log.Printf("Получено сообщение: CorrelationId=%s, ReplyTo=%s", d.CorrelationId, d.ReplyTo)
+			ctx := context.Background()
+			// Вызов ProcessParsingTrackRequest для обработки запроса
+			err := s.ProcessParsingTrackRequest(ctx, d)
+			if err != nil {
+				log.Printf("Error processing parsing request: %v", err)
 			}
-		}()
-
-		return nil
+		}
 	}()
 }
 

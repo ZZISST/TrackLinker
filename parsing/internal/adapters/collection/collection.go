@@ -1,6 +1,8 @@
 package collection
 
 import (
+	"log"
+
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/common"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/ports"
 )
@@ -12,12 +14,15 @@ type Adapter struct {
 func (a *Adapter) Subscribe() (<-chan common.Message, error) {
 	msgs, err := a.mq.Subscribe("parsing.queue", "collection-consumer")
 	if err != nil {
+		log.Printf("Ошибка при подписке: %v", err)
 		return nil, err
 	}
+	log.Println("Подписка на очередь parsing.queue успешно установлена")
 	return msgs, nil
 }
 
 func (a *Adapter) Publish(exchange, routingKey string, body []byte, replyTo, correlationID string) error {
+	log.Printf("Публикация сообщения в очередь %s, replyTo=%s, correlationID=%s", routingKey, replyTo, correlationID)
 	return a.mq.Publish(exchange, routingKey, body, replyTo, correlationID)
 }
 
