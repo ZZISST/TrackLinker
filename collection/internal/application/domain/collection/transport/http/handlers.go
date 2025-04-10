@@ -1,6 +1,5 @@
 package http
 
-<<<<<<< HEAD
 import (
 	"errors"
 	"net/http"
@@ -52,16 +51,3 @@ func (h *CollectionHandler) MakeListening(c *gin.Context) {
 
 	c.JSON(http.StatusOK, status)
 }
-=======
-type CollectionHandler struct {
-	// service service.IMusicService
-}
-
-func NewCollectionHandler(
-// service service.IMusicService
-) *CollectionHandler {
-	return &CollectionHandler{
-		// service: service,
-	}
-}
->>>>>>> 2105d7e486ad49dd4b6965826fe675d1acbea723
