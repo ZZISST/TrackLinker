@@ -3,6 +3,7 @@ package parsing
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,11 +31,14 @@ func (a *Adapter) RequestTrackParsing(requestData dto.RequestTrackParsing) (trac
 		return nil, err
 	}
 
-	// Подписываемся на callback очередь
-	msgs, err := a.mq.Subscribe(replyQueue.Name, "collection-consumer")
+	// Генерируем уникальный consumer tag для подписки на временную очередь
+	consumerTag := "reply-consumer-" + uuid.New().String()
+	msgs, err := a.mq.Subscribe(replyQueue.Name, consumerTag)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("Subscribed to temporary queue: %s with consumer tag: %s", replyQueue.Name, consumerTag)
 
 	// Преобразуем requestData в JSON
 	body, err := json.Marshal(requestData)
@@ -50,12 +54,15 @@ func (a *Adapter) RequestTrackParsing(requestData dto.RequestTrackParsing) (trac
 		replyQueue.Name,
 		correlationId,
 	)
+
+	log.Printf("Published message with correlationId: %s", correlationId)
+
 	if err != nil {
 		return nil, err
 	}
 
 	// Ждем ответа с совпадающим correlationId
-	timeout := time.After(10 * time.Second)
+	timeout := time.After(30 * time.Second)
 	for {
 		select {
 		case d := <-msgs:

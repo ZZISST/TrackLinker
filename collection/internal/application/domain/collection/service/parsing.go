@@ -1,6 +1,8 @@
 package service
 
 import (
+	"log"
+
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/dto"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/ports"
 )
@@ -20,6 +22,7 @@ func NewParsingService(parsing ports.ParsingPort) IParsingService {
 }
 
 func (s *ParsingService) RequestTrackParsing(requestData dto.RequestTrackParsing) (track *dto.ResponseTrackParsing, err error) {
+	log.Printf("RequestTrackParsing: %v", requestData)
 	track, err = s.parsing.RequestTrackParsing(requestData)
 	if err != nil {
 		return nil, err
