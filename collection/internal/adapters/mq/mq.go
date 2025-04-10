@@ -1,4 +1,5 @@
 package mq
+<<<<<<< HEAD
 
 import (
 	"github.com/streadway/amqp"
@@ -84,3 +85,5 @@ func NewAdapter(amqpURL string) (*Adapter, error) {
 		Channel:    ch,
 	}, nil
 }
+=======
+>>>>>>> 2105d7e486ad49dd4b6965826fe675d1acbea723

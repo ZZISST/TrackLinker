@@ -2,6 +2,7 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
+<<<<<<< HEAD
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/repository"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/service"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/ports"
@@ -24,4 +25,11 @@ func Routes(r *gin.RouterGroup, db ports.DBPort, parsing ports.ParsingPort) {
 	{
 		actionRoute.POST("/listen", collectionHandler.MakeListening)
 	}
+=======
+	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/ports"
+)
+
+func Routes(r *gin.RouterGroup, db ports.DBPort) {
+
+>>>>>>> 2105d7e486ad49dd4b6965826fe675d1acbea723
 }

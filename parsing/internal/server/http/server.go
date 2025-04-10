@@ -17,18 +17,22 @@ import (
 )
 
 type Server struct {
-	engine *gin.Engine
-	cfg    *config.Schema
-	db     ports.DBPort
-	s3     ports.S3Port
+	engine     *gin.Engine
+	cfg        *config.Schema
+	db         ports.DBPort
+	s3         ports.S3Port
+	mq         ports.MQPort
+	collection ports.CollectionPort
 }
 
-func NewServer(db ports.DBPort, s3 ports.S3Port) *Server {
+func NewServer(db ports.DBPort, s3 ports.S3Port, mq ports.MQPort, collection ports.CollectionPort) *Server {
 	return &Server{
-		engine: gin.New(),
-		cfg:    config.GetConfig(),
-		db:     db,
-		s3:     s3,
+		engine:     gin.New(),
+		cfg:        config.GetConfig(),
+		db:         db,
+		s3:         s3,
+		mq:         mq,
+		collection: collection,
 	}
 }
 
@@ -74,6 +78,6 @@ func (s Server) GetEngine() *gin.Engine {
 
 func (s Server) MapRoutes() error {
 	v1 := s.engine.Group("/api/v1")
-	parsingHttp.Routes(v1, s.db, s.s3)
+	parsingHttp.Routes(v1, s.db, s.s3, s.collection)
 	return nil
 }

@@ -25,7 +25,8 @@ type IParsingService interface {
 	getLinks(title string, artist string) (*model.LinkData, error)
 	getAllData(title, artist string) (*model.ParsedMusic, error)
 	getParsingData(link *url.URL, streamingService model.MusicService) (*model.ParsingData, error)
-	GetMusicData(link *url.URL) (*model.LinkData, *model.ParsedMusic, error)
+	GetMusicDataByLink(link *url.URL) (*model.LinkData, *model.ParsedMusic, error)
+	GetMusicDataByData(title *string, artist *string) (*model.LinkData, *model.ParsedMusic, error)
 }
 
 type ParsingService struct {
@@ -34,7 +35,38 @@ type ParsingService struct {
 	linkFormater modelutils.ILinkFormater
 }
 
-func (p *ParsingService) GetMusicData(link *url.URL) (*model.LinkData, *model.ParsedMusic, error) {
+func NewParsingService(fullParser IFullParsingMusicService, services ...IParsingMusicService) IParsingService {
+	return &ParsingService{
+		fullParser:   fullParser,
+		services:     services,
+		linkFormater: modelutils.NewLinkFormater(),
+	}
+}
+
+func (p *ParsingService) GetMusicDataByData(title *string, artist *string) (*model.LinkData, *model.ParsedMusic, error) {
+
+	if title == nil || artist == nil {
+		return nil, nil, fmt.Errorf("неправильный ввод артиста и имени трэка")
+	}
+
+	// Получаем ссылки на трек
+	links, err := p.getLinks(*title, *artist)
+	if err != nil {
+		return nil, nil, fmt.Errorf("ошибка получения ссылок на трек: %w", err)
+	}
+
+	// Получаем полные данные о треке
+	parsedMusic, err := p.getAllData(*title, *artist)
+	if err != nil {
+		return nil, nil, fmt.Errorf("ошибка получения полных данных о треке: %w", err)
+	}
+
+	log.Printf("Получены данные о треке: %s - %s", *title, *artist)
+
+	return links, parsedMusic, nil
+}
+
+func (p *ParsingService) GetMusicDataByLink(link *url.URL) (*model.LinkData, *model.ParsedMusic, error) {
 
 	log.Printf("Получение данных о треке по ссылке: %s", link)
 	streamingService, err := p.linkFormater.IdentifyMusicServiceByLink(link)
@@ -65,14 +97,6 @@ func (p *ParsingService) GetMusicData(link *url.URL) (*model.LinkData, *model.Pa
 	log.Printf("Получены данные о треке: %s - %s", parsingData.Title, parsingData.Artist)
 
 	return links, parsedMusic, nil
-}
-
-func NewParsingService(fullParser IFullParsingMusicService, services ...IParsingMusicService) IParsingService {
-	return &ParsingService{
-		fullParser:   fullParser,
-		services:     services,
-		linkFormater: modelutils.NewLinkFormater(),
-	}
 }
 
 func (p *ParsingService) getLinks(title string, artist string) (*model.LinkData, error) {

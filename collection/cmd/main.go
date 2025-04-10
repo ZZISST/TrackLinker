@@ -4,9 +4,13 @@ import (
 	"log"
 
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/adapters/db"
+<<<<<<< HEAD
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/adapters/mq"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/adapters/parsing"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/model/modelMusic"
+=======
+	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/model"
+>>>>>>> 2105d7e486ad49dd4b6965826fe675d1acbea723
 	httpServer "gitlab.com/etherealSent/tracklinker-backend/collection/internal/server/http"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/pkg/config"
 )
@@ -25,7 +29,11 @@ func main() {
 		log.Fatal("Database connection fail", err)
 	}
 
+<<<<<<< HEAD
 	err = db.AutoMigrate(&modelMusic.Album{}, &modelMusic.TrackPreview{}, &modelMusic.Track{}, &modelMusic.MusicLink{}, &modelMusic.Artist{})
+=======
+	err = db.AutoMigrate(&model.Album{}, &model.TrackPreview{}, &model.Track{}, &model.MusicLink{}, &model.Artist{})
+>>>>>>> 2105d7e486ad49dd4b6965826fe675d1acbea723
 	if err != nil {
 		log.Fatal("Database connection fail", err)
 	}
@@ -34,6 +42,7 @@ func main() {
 		log.Fatalf("Failed to migrate: %v", err)
 	}
 
+<<<<<<< HEAD
 	if err := SeedMusicServices(db); err != nil {
 		log.Fatalf("Failed to seed music services: %v", err)
 	}
@@ -47,6 +56,14 @@ func main() {
 
 	// Initialize the HTTP server
 	server := httpServer.NewServer(db, parsing)
+=======
+	if err := model.SeedMusicServices(db); err != nil {
+		log.Fatalf("Failed to seed music services: %v", err)
+	}
+
+	// Initialize the HTTP server
+	server := httpServer.NewServer(db)
+>>>>>>> 2105d7e486ad49dd4b6965826fe675d1acbea723
 
 	// Run the server (this blocks the program)
 	if err := server.Run(); err != nil {
@@ -69,6 +86,7 @@ func AutoMigrateMusicService(db *db.Adapter) error {
 	}
 
 	// AutoMigrate the table
+<<<<<<< HEAD
 	return db.AutoMigrate(&modelMusic.MusicServiceDictionary{})
 }
 
@@ -88,4 +106,7 @@ func SeedMusicServices(db *db.Adapter) error {
 	}
 
 	return nil
+=======
+	return db.AutoMigrate(&model.MusicServiceDictionary{})
+>>>>>>> 2105d7e486ad49dd4b6965826fe675d1acbea723
 }

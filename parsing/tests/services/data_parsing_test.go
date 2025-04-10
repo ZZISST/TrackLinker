@@ -4,10 +4,10 @@ import (
 	"net/url"
 	"testing"
 
-	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
-	service "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
+	service "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/service"
 )
 
 // Mock IParsingMusicService
@@ -52,14 +52,13 @@ func TestGetMusicData(t *testing.T) {
 	mockService.On("GetData", link.Path).Return("Test Song", "Test Artist", nil)
 	mockService.On("GetUrl", "Test Song", "Test Artist").Return("https://music.apple.com/us/song/test-song/123456789", nil)
 	mockFullService.On("GetAllData", "Test Song", "Test Artist").
-	Return(&model.ParsedMusic{
-		Title: "Test Song",
-		Artist: model.ParsedMusic{}.Artist,
-		Album:  model.ParsedMusic{}.Album,
-	}, nil)
+		Return(&model.ParsedMusic{
+			Title:  "Test Song",
+			Artist: model.ParsedMusic{}.Artist,
+			Album:  model.ParsedMusic{}.Album,
+		}, nil)
 
-
-	links, parsedMusic, err := parsingService.GetMusicData(link)
+	links, parsedMusic, err := parsingService.GetMusicDataByLink(link)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, links)
@@ -75,6 +74,6 @@ func TestGetMusicData_Error(t *testing.T) {
 
 	link, _ := url.Parse("https://unsupported.com/song/test-song/123456789")
 
-	_, _, err := parsingService.GetMusicData(link)
+	_, _, err := parsingService.GetMusicDataByLink(link)
 	assert.Error(t, err)
 }
