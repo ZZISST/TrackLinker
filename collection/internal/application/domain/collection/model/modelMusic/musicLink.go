@@ -1,4 +1,4 @@
-package model
+package modelMusic
 
 import "github.com/google/uuid"
 

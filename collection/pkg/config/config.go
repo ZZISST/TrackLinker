@@ -24,6 +24,7 @@ type Schema struct {
 	Environment string `env:"ENVIROMENRT"`
 	DatabaseURI string `env:"DATABASE_URI"`
 	SwaggerHost string `env:"SWAGGER_HOST"`
+	AMQPURL     string `env:"AMQP_URL"`
 }
 
 func LoadConfig(environment string) *Schema {

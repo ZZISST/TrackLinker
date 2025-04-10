@@ -4,7 +4,9 @@ import (
 	"log"
 
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/adapters/db"
-	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/model"
+	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/adapters/mq"
+	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/adapters/parsing"
+	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/model/modelMusic"
 	httpServer "gitlab.com/etherealSent/tracklinker-backend/collection/internal/server/http"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/pkg/config"
 )
@@ -23,7 +25,7 @@ func main() {
 		log.Fatal("Database connection fail", err)
 	}
 
-	err = db.AutoMigrate(&model.Album{}, &model.TrackPreview{}, &model.Track{}, &model.MusicLink{}, &model.Artist{})
+	err = db.AutoMigrate(&modelMusic.Album{}, &modelMusic.TrackPreview{}, &modelMusic.Track{}, &modelMusic.MusicLink{}, &modelMusic.Artist{})
 	if err != nil {
 		log.Fatal("Database connection fail", err)
 	}
@@ -32,12 +34,19 @@ func main() {
 		log.Fatalf("Failed to migrate: %v", err)
 	}
 
-	if err := model.SeedMusicServices(db); err != nil {
+	if err := SeedMusicServices(db); err != nil {
 		log.Fatalf("Failed to seed music services: %v", err)
 	}
 
+	mq, err := mq.NewAdapter(cfg.AMQPURL)
+	if err != nil {
+		log.Fatal("Message Queue connection fail", err)
+	}
+
+	parsing := parsing.NewAdapter(mq)
+
 	// Initialize the HTTP server
-	server := httpServer.NewServer(db)
+	server := httpServer.NewServer(db, parsing)
 
 	// Run the server (this blocks the program)
 	if err := server.Run(); err != nil {
@@ -60,5 +69,23 @@ func AutoMigrateMusicService(db *db.Adapter) error {
 	}
 
 	// AutoMigrate the table
-	return db.AutoMigrate(&model.MusicServiceDictionary{})
+	return db.AutoMigrate(&modelMusic.MusicServiceDictionary{})
+}
+
+func SeedMusicServices(db *db.Adapter) error {
+	services := []modelMusic.MusicServiceDictionary{
+		{Service: modelMusic.Apple},
+		{Service: modelMusic.Yandex},
+		{Service: modelMusic.Spotify},
+		{Service: modelMusic.Deezer},
+		{Service: modelMusic.Unsupported},
+	}
+
+	for _, service := range services {
+		if err := db.GetDB().FirstOrCreate(&service, service).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
