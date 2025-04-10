@@ -1,9 +1,5 @@
 package model
 
-import (
-	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/db"
-)
-
 type MusicServiceDictionary struct {
 	Service MusicService `gorm:"primary_key" json:"music_service"`
 }
@@ -31,21 +27,3 @@ const (
 	DeezerCom       MusicServiceLink = "deezer.com"
 	UnsupportedLink MusicServiceLink = "Unsupported"
 )
-
-func SeedMusicServices(db *db.Adapter) error {
-	services := []MusicServiceDictionary{
-		{Service: Apple},
-		{Service: Yandex},
-		{Service: Spotify},
-		{Service: Deezer},
-		{Service: Unsupported},
-	}
-
-	for _, service := range services {
-		if err := db.GetDB().FirstOrCreate(&service, service).Error; err != nil {
-			return err
-		}
-	}
-
-	return nil
-}

@@ -20,7 +20,8 @@ type IMusicService interface {
 	GetTrackByID(ctx context.Context, id string) (*dto.MusicTrack, error)
 	GetAlbumByID(ctx context.Context, id string) (*dto.MusicAlbum, error)
 	FindMusic(link url.URL) (*dto.MusicResultDto, error)
-	findTrack(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*dto.MusicTrack, error)
+	findTrackByLink(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*dto.MusicTrack, error)
+	findTrackByData(ctx context.Context, name string, artists []string) (*dto.MusicTrack, error)
 	findAlbum(ctx context.Context, link url.URL) (*dto.MusicAlbum, error)
 	upsertTrack(ctx context.Context, data *model.ParsedMusic, links *model.LinkData, mtype model.MusicRequestType) (*dto.MusicTrack, error)
 }
@@ -69,8 +70,8 @@ func (m MusicService) findAlbum(ctx context.Context, link url.URL) (*dto.MusicAl
 	return music, nil
 }
 
-// findTrack implements IMusicService.
-func (m MusicService) findTrack(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*dto.MusicTrack, error) {
+// findTrackByLink implements IMusicService.
+func (m MusicService) findTrackByLink(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*dto.MusicTrack, error) {
 
 	var music *dto.MusicTrack
 
@@ -79,7 +80,7 @@ func (m MusicService) findTrack(ctx context.Context, link url.URL, mtype model.M
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Printf("Track: %+v, Error: %v", track, err)
 
-		linkData, fullData, error := m.ParsingSvc.GetMusicData(&link)
+		linkData, fullData, error := m.ParsingSvc.GetMusicDataByLink(&link)
 		if error != nil {
 			return nil, fmt.Errorf("failed to get music data: %w", error)
 		}
@@ -122,6 +123,22 @@ func (m MusicService) findTrack(ctx context.Context, link url.URL, mtype model.M
 	return music, nil
 }
 
+// In this method we know that THERE IS NO TRACK IN DB and maybe some Artists too! Uses by collection microservice
+func (m MusicService) findTrackByData(ctx context.Context, name string, artists []string) (*dto.MusicTrack, error) {
+	// artists[0] полная хуйня надо менять на artists []string
+	linkData, fullData, err := m.ParsingSvc.GetMusicDataByData(&name, &artists[0])
+	if err != nil {
+		return nil, fmt.Errorf("failed to get music data by data: %w", err)
+	}
+
+	newMusic, err := m.upsertTrack(context.Background(), fullData, linkData, model.MusicRequestTrack)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upsert track: %w", err)
+	}
+
+	return newMusic, nil
+}
+
 func (m MusicService) FindMusic(link url.URL) (*dto.MusicResultDto, error) {
 
 	var music *dto.MusicResultDto
@@ -134,7 +151,7 @@ func (m MusicService) FindMusic(link url.URL) (*dto.MusicResultDto, error) {
 	switch *musicType {
 	case model.MusicRequestTrack, model.MusicRequestTrackInAlbum:
 
-		track, err := m.findTrack(context.Background(), link, *musicType)
+		track, err := m.findTrackByLink(context.Background(), link, *musicType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find track: %w", err)
 		}

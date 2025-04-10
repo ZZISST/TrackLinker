@@ -3,7 +3,9 @@ package main
 import (
 	"log"
 
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/collection"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/db"
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/mq"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/s3"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 	httpServer "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/server/http"
@@ -33,14 +35,21 @@ func main() {
 		log.Fatalf("Failed to migrate: %v", err)
 	}
 
-	if err := model.SeedMusicServices(db); err != nil {
+	if err := SeedMusicServices(db); err != nil {
 		log.Fatalf("Failed to seed music services: %v", err)
 	}
 
 	s3 := s3.NewAdapter(*cfg)
 
+	mq, err := mq.NewAdapter(cfg.AMQPURL)
+	if err != nil {
+		log.Fatal("Message Queue connection fail", err)
+	}
+
+	collection := collection.NewAdapter(mq)
+
 	// Initialize the HTTP server
-	server := httpServer.NewServer(db, s3)
+	server := httpServer.NewServer(db, s3, mq, collection)
 
 	// Run the server (this blocks the program)
 	if err := server.Run(); err != nil {
@@ -64,4 +73,22 @@ func AutoMigrateMusicService(db *db.Adapter) error {
 
 	// AutoMigrate the table
 	return db.AutoMigrate(&model.MusicServiceDictionary{})
+}
+
+func SeedMusicServices(db *db.Adapter) error {
+	services := []model.MusicServiceDictionary{
+		{Service: model.Apple},
+		{Service: model.Yandex},
+		{Service: model.Spotify},
+		{Service: model.Deezer},
+		{Service: model.Unsupported},
+	}
+
+	for _, service := range services {
+		if err := db.GetDB().FirstOrCreate(&service, service).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

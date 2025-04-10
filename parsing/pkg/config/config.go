@@ -32,6 +32,7 @@ type Schema struct {
 	S3AccessKey         string `env:"S3_ACCESS_KEY"`
 	S3SecretKey         string `env:"S3_SECRET_KEY"`
 	SwaggerHost         string `env:"SWAGGER_HOST"`
+	AMQPURL             string `env:"AMQP_URL"`
 }
 
 func LoadConfig(environment string) *Schema {
