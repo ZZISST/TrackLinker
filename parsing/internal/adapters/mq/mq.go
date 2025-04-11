@@ -25,6 +25,21 @@ func (a *Adapter) Publish(exchange, routingKey string, body []byte, replyTo, cor
 	)
 }
 
+func (a *Adapter) DeclareQueue(queueName string) (common.QueueInfo, error) {
+	q, err := a.Channel.QueueDeclare(
+		queueName, // имя очереди
+		true,      // durable
+		false,     // autoDelete
+		false,     // exclusive
+		false,     // noWait
+		nil,       // arguments
+	)
+	if err != nil {
+		return common.QueueInfo{}, err
+	}
+	return mapAmqpQueueToQueueInfo(q), nil
+}
+
 func (a *Adapter) Subscribe(queueName, consumerTag string) (<-chan common.Message, error) {
 	// Получаем канал amqp.Delivery от AMQP клиента
 	deliveryChan, err := a.Channel.Consume(

@@ -65,6 +65,7 @@ func (s *ListeningService) MakeListening(ctx context.Context, userID, name, arti
 		for _, artistName := range formattedArtists {
 
 			artist, err := s.artistRepo.GetArtistByName(ctx, artistName)
+			log.Printf("Artist: %v", artist)
 
 			if err != nil {
 				log.Printf("Error: %v", err)
@@ -93,7 +94,10 @@ func (s *ListeningService) MakeListening(ctx context.Context, userID, name, arti
 
 		// Получение Track
 		track, err := s.trackRepo.GetTrackByNameAndArtistsID(ctx, name, artistsID)
+		log.Printf("Track: %v", track)
 		if err != nil {
+			log.Printf("Error: %v", err)
+			// Если трек не найден, то создаем его
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// запрос в parsing ()
 				// FindMusic запрос (не будет создавать артистов заново есть проверка)
@@ -120,34 +124,55 @@ func (s *ListeningService) MakeListening(ctx context.Context, userID, name, arti
 			}
 		}
 
+		log.Printf("ParsedTrack: %+v", parsedTrack)
+
+		var collection *model.Collection
+
 		// Получение Collection
-		collection, err := s.collectionRepo.GetCollectionByUserID(ctx, userID)
+		collection, err = s.collectionRepo.GetCollectionByUserID(ctx, userID)
 		if err != nil {
-			return err
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				collection = model.NewCollection(userID)
+				s.collectionRepo.CreateCollection(ctx, collection)
+			} else {
+				return err
+			}
 		}
+
+		log.Printf("Collection: %v", collection)
 
 		// Получение AddedContent
 		addedContent, err := s.addedContentRepo.GetByCollectionIDAndTrackID(ctx, collection.ID, parsedTrack.TrackID)
 		if err != nil {
-			return err
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				addedContent = nil
+			} else {
+				return err
+			}
 		}
+
+		log.Printf("AddedContent: %v", addedContent)
 
 		// Проверка на существование AddedContent в коллекции
 		// Если AddedContent не существует, то создаем его
 		if addedContent == nil {
 
 			// Создание AddedContent
-			newAddedContent := model.NewAddedContent(userID, collection.ID, parsedTrack.TrackID)
+			newAddedContent := model.NewAddedContent(collection.ID, parsedTrack.TrackID, "track")
 			s.addedContentRepo.Create(ctx, &newAddedContent)
+
+			log.Printf("AddedContent: %v", newAddedContent)
 
 			// Создание Listening
 			newListening := model.NewListening(timeStart, timeEnd, newAddedContent.ID)
 			s.listeningRepo.Create(ctx, &newListening)
-
+			
+			log.Printf("Listening: %v", newListening)
 		} else {
 			// Если AddedContent существует, то создаем Listening
 			newListening := model.NewListening(timeStart, timeEnd, addedContent.ID)
 			s.listeningRepo.Create(ctx, &newListening)
+			log.Printf("Listening: %v", newListening)
 		}
 
 		return nil

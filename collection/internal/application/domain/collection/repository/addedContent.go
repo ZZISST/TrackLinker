@@ -24,7 +24,7 @@ func (r *AddedContentRepository) GetByCollectionIDAndTrackID(ctx context.Context
 	var addedContent model.AddedContent
 
 	opts := []ports.FindOption{
-		ports.WithQuery(ports.NewQuery("collection_id = ? AND track_id = ?", collectionID, trackID)),
+		ports.WithQuery(ports.NewQuery("collection_id = ? AND owner_id = ? AND owner_type = ?", collectionID, trackID, "track")),
 	}
 
 	if err := r.db.FindOne(ctx, &addedContent, opts...); err != nil {

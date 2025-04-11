@@ -6,6 +6,7 @@ import (
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/adapters/db"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/adapters/mq"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/adapters/parsing"
+	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/model"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/model/modelMusic"
 	httpServer "gitlab.com/etherealSent/tracklinker-backend/collection/internal/server/http"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/pkg/config"
@@ -25,7 +26,7 @@ func main() {
 		log.Fatal("Database connection fail", err)
 	}
 
-	err = db.AutoMigrate(&modelMusic.Album{}, &modelMusic.TrackPreview{}, &modelMusic.Track{}, &modelMusic.MusicLink{}, &modelMusic.Artist{})
+	err = db.AutoMigrate(&modelMusic.Album{}, &modelMusic.TrackPreview{}, &modelMusic.Track{}, &modelMusic.MusicLink{}, &modelMusic.Artist{}, model.Collection{}, model.AddedContent{}, model.AddedContentType{}, model.ContentTag{}, model.Listening{}, model.ReferralClick{}, model.ReferralLink{})
 	if err != nil {
 		log.Fatal("Database connection fail", err)
 	}

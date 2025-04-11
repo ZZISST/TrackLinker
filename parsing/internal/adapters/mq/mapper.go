@@ -28,3 +28,11 @@ func mapDeliveryToMessage(d amqp.Delivery) common.Message {
 		Body:            d.Body,
 	}
 }
+
+func mapAmqpQueueToQueueInfo(q amqp.Queue) common.QueueInfo {
+	return common.QueueInfo{
+		Name:      q.Name,
+		Messages:  q.Messages,
+		Consumers: q.Consumers,
+	}
+}

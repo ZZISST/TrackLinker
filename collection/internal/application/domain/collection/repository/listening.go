@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/model"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/ports"
@@ -21,6 +22,9 @@ func (r *ListeningRepository) Create(ctx context.Context, listening *model.Liste
 }
 
 func (r *ListeningRepository) WithTransaction(handler func() error) error {
+	if r.db == nil {
+        return fmt.Errorf("db is nil in ListeningRepository")
+    }
 	return r.db.WithTransaction(handler)
 }
 

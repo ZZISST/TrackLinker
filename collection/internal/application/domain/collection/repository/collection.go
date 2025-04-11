@@ -8,8 +8,8 @@ import (
 )
 
 type ICollectionRepository interface {
+	CreateCollection(ctx context.Context, collection *model.Collection) error	
 	GetCollectionByUserID(ctx context.Context, userID string) (*model.Collection, error)
-	AppendAddedContent(ctx context.Context, content model.AddedContent)
 }
 
 type CollectionRepository struct {
@@ -30,9 +30,10 @@ func (r *CollectionRepository) GetCollectionByUserID(ctx context.Context, userID
 	return &collection, nil
 }
 
-func (r *CollectionRepository) AppendAddedContent(ctx context.Context, content model.AddedContent) {
-
+func (r *CollectionRepository) CreateCollection(ctx context.Context, collection *model.Collection) error {
+	return r.db.Create(ctx, collection)
 }
+
 
 func NewCollectionRepository(db ports.DBPort) ICollectionRepository {
 	return &CollectionRepository{
