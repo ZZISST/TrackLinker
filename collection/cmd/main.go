@@ -12,9 +12,9 @@ import (
 	"gitlab.com/etherealSent/tracklinker-backend/collection/pkg/config"
 )
 
-//	@title			TrackLinker Swagger API
+//	@title			TrackLinker Collection Swagger API
 //	@version		2.0
-//	@description	Swagger API for GoShop.
+//	@description	Swagger API for Collection microservice.
 //	@termsOfService	http://swagger.io/terms/
 
 // @BasePath	/api/v1

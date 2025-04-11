@@ -7,10 +7,10 @@ import (
 	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
-	// swaggerFiles "github.com/swaggo/files"
-	// ginSwagger "github.com/swaggo/gin-swagger"
-	// "gitlab.com/etherealSent/tracklinker-backend/parsing/docs"
-	// _ "gitlab.com/etherealSent/tracklinker-backend/parsing/docs"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"gitlab.com/etherealSent/tracklinker-backend/collection/docs"
+	_ "gitlab.com/etherealSent/tracklinker-backend/collection/docs"
 	parsingHttp "gitlab.com/etherealSent/tracklinker-backend/collection/internal/application/domain/collection/transport/http"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/internal/ports"
 	"gitlab.com/etherealSent/tracklinker-backend/collection/pkg/config"
@@ -34,12 +34,12 @@ func NewServer(db ports.DBPort, parsing ports.ParsingPort) *Server {
 
 func (s Server) Run() error {
 
-	// docs.SwaggerInfo.Host = s.cfg.SwaggerHost
+	docs.SwaggerInfo.Host = s.cfg.SwaggerHost
 
-	// if s.cfg.Environment == config.ProductionEnv {
-	// 	docs.SwaggerInfo.BasePath = "/"              // adjust if your API is under a sub-path
-	// 	docs.SwaggerInfo.Schemes = []string{"https"} // use https since you're using SSL
-	// }
+	if s.cfg.Environment == config.ProductionEnv {
+		docs.SwaggerInfo.BasePath = "/"              // adjust if your API is under a sub-path
+		docs.SwaggerInfo.Schemes = []string{"https"} // use https since you're using SSL
+	}
 
 	gin.SetMode(gin.ReleaseMode)
 	log.Printf("Gin is running in %s mode", gin.Mode())
@@ -59,11 +59,11 @@ func (s Server) Run() error {
 		log.Fatalf("MapRoutes Error: %v", err)
 	}
 
-	// if s.cfg.Environment == config.ProductionEnv {
-	// 	s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("https://tracklinker.ru/swagger/doc.json")))
-	// } else {
-	// 	s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	// }
+	if s.cfg.Environment == config.ProductionEnv {
+		s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("https://tracklinker.ru/swagger/doc.json")))
+	} else {
+		s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	}
 
 	return s.engine.Run("0.0.0.0" + ":" + "8081")
 }

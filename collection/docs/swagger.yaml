@@ -1,0 +1,47 @@
+basePath: /api/v1
+definitions:
+  dto.RequestMakeListening:
+    properties:
+      artists:
+        type: string
+      name:
+        type: string
+      timeEnd:
+        type: string
+      timeStart:
+        type: string
+      userID:
+        type: string
+    type: object
+  dto.ResponseMakeListening:
+    properties:
+      status:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Swagger API for Collection microservice.
+  termsOfService: http://swagger.io/terms/
+  title: TrackLinker Collection Swagger API
+  version: "2.0"
+paths:
+  /api/v1/action/listen:
+    post:
+      parameters:
+      - description: Body
+        in: body
+        name: _
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RequestMakeListening'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ResponseMakeListening'
+      summary: make listening
+      tags:
+      - collection
+swagger: "2.0"
