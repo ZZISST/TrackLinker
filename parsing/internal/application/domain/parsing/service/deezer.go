@@ -3,13 +3,15 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
+	"log"
 	"net/http"
 	"net/url"
-
+	"regexp"
+	"time"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/dto"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
+	_ "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 )
 
 type DeezerService struct{}
@@ -59,13 +61,13 @@ func (s *DeezerService) GetUrl(title, artist string) (TrackUrl string, err error
 	return "", nil
 }
 
-func (s *DeezerService) GetAllData(title, artist string) (*model.ParsedMusic, error) {
+func (s *DeezerService) GetAllTrackData(title, artist string) (*model.ParsingTrack, error) {
 	encodedTitle := url.QueryEscape(title)
 	encodedArtist := url.QueryEscape(artist)
 
-	apiUrl := fmt.Sprintf("https://api.deezer.com/search?q=%s%%20%s", encodedTitle, encodedArtist)
+	searchUrl := fmt.Sprintf("https://api.deezer.com/search?q=%s%%20%s", encodedTitle, encodedArtist)
 
-	req, err := http.NewRequest("GET", apiUrl, nil)
+	req, err := http.NewRequest("GET", searchUrl, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a req to Deezer API: %w", err)
 	}
@@ -92,17 +94,94 @@ func (s *DeezerService) GetAllData(title, artist string) (*model.ParsedMusic, er
 
 	firstTrack := deezerResp.Data[0]
 
-	result := model.NewParsedMusic(
-		firstTrack.ID,
-		firstTrack.Title,
-		firstTrack.Link,
-		firstTrack.Preview,
-		firstTrack.Artist.Name,
-		firstTrack.Artist.Link,
-		firstTrack.Album.Cover,
+	trackUrl := fmt.Sprintf("https://api.deezer.com/track/%s", firstTrack.ID)
+
+	req, err = http.NewRequest("GET", trackUrl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create a req to Deezer API: %w", err)
+	}
+
+	resp, err = client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send a req: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Deezer API returned status code: %d", resp.StatusCode)
+	}
+
+	var deezerTrack dto.DeezerTrack
+	if err := json.NewDecoder(resp.Body).Decode(&deezerTrack); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	artists := convertContributorsToParsingArtists(deezerTrack.Contributors)
+	album := convertAlbumToParsingAlbum(deezerTrack.Album)
+
+	// Convert release_date to time.Time
+	trackReleaseDate, err := time.Parse("2006-01-02", deezerTrack.ReleaseDate)
+	if err != nil {
+		log.Printf("Failed to parse release date: %v", err)
+		trackReleaseDate = time.Time{} // Set to zero value if parsing fails
+	}
+
+	// Get genres
+	albumUrl := fmt.Sprintf("https://api.deezer.com/album/%s", firstTrack.Album.ID)
+
+	req, err = http.NewRequest("GET", albumUrl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create a req to Deezer API: %w", err)
+	}
+
+	resp, err = client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send a req: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Deezer API returned status code: %d", resp.StatusCode)
+	}
+
+	var deezerAlbum dto.DeezerAlbum
+	if err := json.NewDecoder(resp.Body).Decode(&deezerAlbum); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// add genres to added album
+	albumGenres := convertGenresToParsingGenres(deezerAlbum.Genres)
+	album.Genres = albumGenres
+
+	// add album release date
+	albumReleaseDate, err := time.Parse("2006-01-02", deezerAlbum.ReleaseDate)
+	if err != nil {
+		log.Printf("Failed to parse release date: %v", err)
+		albumReleaseDate = time.Time{} // Set to zero value if parsing fails
+	}
+
+	// add album record type
+	album.RecordType = deezerAlbum.RecordType
+
+	album.ReleaseDate = albumReleaseDate
+
+	result := model.NewParsingTrack(
+		deezerTrack.ID,
+		deezerTrack.Title,
+		deezerTrack.Duration,
+		deezerTrack.Link,
+		deezerTrack.TrackPosition,
+		deezerTrack.DiscNumber,
+		trackReleaseDate,
+		artists,
+		album,
 	)
 
 	return &result, nil
+}
+
+func (s *DeezerService) GetAllAlbumData(title, artist string) (*model.ParsingAlbum, error) {
+	return &model.ParsingAlbum{}, nil
 }
 
 func deezerExtractTrackID(trackUrl string) string {
@@ -115,6 +194,38 @@ func deezerExtractTrackID(trackUrl string) string {
 	}
 
 	return ""
+}
+
+func convertContributorsToParsingArtists(contributors []dto.DeezerContributor) []model.ParsingArtist {
+	var artists []model.ParsingArtist
+	for _, contributor := range contributors {
+		artists = append(artists, model.ParsingArtist{
+			ID:    contributor.ID,
+			Name:  contributor.Name,
+			Cover: contributor.PictureXl,
+		})
+	}
+	return artists
+}
+
+// Convert deezerTrack.Album to ParsingAlbum
+func convertAlbumToParsingAlbum(album dto.DeezerAlbum) model.ParsingAlbum {
+	return model.ParsingAlbum{
+		ID:    album.ID,
+		Title: album.Title,
+		Cover: album.Cover,
+	}
+}
+
+func convertGenresToParsingGenres(parsedGenres []dto.DeezerGenre) []model.ParsingGenre {
+	var genres []model.ParsingGenre
+	for _, genre := range parsedGenres {
+		genres = append(genres, model.ParsingGenre{
+			ID:   genre.ID,
+			Name: genre.Name,
+		})
+	}
+	return genres
 }
 
 func NewDeezerService() IFullParsingMusicService {

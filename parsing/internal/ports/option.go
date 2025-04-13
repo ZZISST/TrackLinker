@@ -8,6 +8,8 @@ type Option struct {
 	Join     string
 	Query    []Query
 	Order    any
+	Group    string
+	Having   []Query
 	Offset   int
 	Limit    int
 	Preloads []string
@@ -40,6 +42,18 @@ func WithLimit(limit int) FindOption {
 func WithOrder(order interface{}) FindOption {
 	return optionFn(func(opt *Option) {
 		opt.Order = order
+	})
+}
+
+func WithGroup(group string) FindOption {
+	return optionFn(func(opt *Option) {
+		opt.Group = group
+	})
+}
+
+func WithHaving(having ...Query) FindOption {
+	return optionFn(func(opt *Option) {
+		opt.Having = having
 	})
 }
 

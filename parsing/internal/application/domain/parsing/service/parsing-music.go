@@ -18,15 +18,16 @@ type IParsingMusicService interface {
 
 type IFullParsingMusicService interface {
 	IParsingMusicService
-	GetAllData(title, artist string) (*model.ParsedMusic, error)
+	GetAllTrackData(title, artist string) (*model.ParsingTrack, error)
+	GetAllAlbumData(title, artist string) (*model.ParsingAlbum, error)
 }
 
 type IParsingService interface {
 	getLinks(title string, artist string) (*model.LinkData, error)
-	getAllData(title, artist string) (*model.ParsedMusic, error)
+	getAllTrackData(title, artist string) (*model.ParsingTrack, error)
 	getParsingData(link *url.URL, streamingService model.MusicService) (*model.ParsingData, error)
-	GetMusicDataByLink(link *url.URL) (*model.LinkData, *model.ParsedMusic, error)
-	GetMusicDataByData(title *string, artist *string) (*model.LinkData, *model.ParsedMusic, error)
+	GetTrackDataByLink(link *url.URL) (*model.LinkData, *model.ParsingTrack, error)
+	GetTrackDataByData(title *string, artist *string) (*model.LinkData, *model.ParsingTrack, error)
 }
 
 type ParsingService struct {
@@ -43,7 +44,7 @@ func NewParsingService(fullParser IFullParsingMusicService, services ...IParsing
 	}
 }
 
-func (p *ParsingService) GetMusicDataByData(title *string, artist *string) (*model.LinkData, *model.ParsedMusic, error) {
+func (p *ParsingService) GetTrackDataByData(title *string, artist *string) (*model.LinkData, *model.ParsingTrack, error) {
 
 	if title == nil || artist == nil {
 		return nil, nil, fmt.Errorf("неправильный ввод артиста и имени трэка")
@@ -56,7 +57,7 @@ func (p *ParsingService) GetMusicDataByData(title *string, artist *string) (*mod
 	}
 
 	// Получаем полные данные о треке
-	parsedMusic, err := p.getAllData(*title, *artist)
+	parsedMusic, err := p.getAllTrackData(*title, *artist)
 	if err != nil {
 		return nil, nil, fmt.Errorf("ошибка получения полных данных о треке: %w", err)
 	}
@@ -66,7 +67,7 @@ func (p *ParsingService) GetMusicDataByData(title *string, artist *string) (*mod
 	return links, parsedMusic, nil
 }
 
-func (p *ParsingService) GetMusicDataByLink(link *url.URL) (*model.LinkData, *model.ParsedMusic, error) {
+func (p *ParsingService) GetTrackDataByLink(link *url.URL) (*model.LinkData, *model.ParsingTrack, error) {
 
 	log.Printf("Получение данных о треке по ссылке: %s", link)
 	streamingService, err := p.linkFormater.IdentifyMusicServiceByLink(link)
@@ -89,7 +90,7 @@ func (p *ParsingService) GetMusicDataByLink(link *url.URL) (*model.LinkData, *mo
 	}
 
 	// Получаем полные данные о треке
-	parsedMusic, err := p.getAllData(parsingData.Title, parsingData.Artist)
+	parsedMusic, err := p.getAllTrackData(parsingData.Title, parsingData.Artist)
 	if err != nil {
 		return nil, nil, fmt.Errorf("ошибка получения полных данных о треке: %w", err)
 	}
@@ -193,9 +194,9 @@ func (p *ParsingService) getParsingData(link *url.URL, streamingService model.Mu
 	}, nil
 }
 
-func (p *ParsingService) getAllData(title, artist string) (*model.ParsedMusic, error) {
+func (p *ParsingService) getAllTrackData(title, artist string) (*model.ParsingTrack, error) {
 
-	parsedMusic, err := p.fullParser.GetAllData(title, artist)
+	parsedMusic, err := p.fullParser.GetAllTrackData(title, artist)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения полных данных: %w", err)
 	}

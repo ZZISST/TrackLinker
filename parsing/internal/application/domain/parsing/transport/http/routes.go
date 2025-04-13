@@ -14,6 +14,7 @@ func Routes(r *gin.RouterGroup, db ports.DBPort, s3 ports.S3Port, collection por
 	musicLinkRepo := repository.NewMusicLinkRepository(db)
 	trackPreviewRepo := repository.NewTrackPreviewRepository(db)
 	albumArtistRepo := repository.NewAlbumArtistRepository(db)
+	genreRepo := repository.NewGenreRepository(db)
 
 	spotifyAuthSvc := service.NewSpotifyAuthService()
 	spotifySvc := service.NewSpotifyService(spotifyAuthSvc)
@@ -28,7 +29,7 @@ func Routes(r *gin.RouterGroup, db ports.DBPort, s3 ports.S3Port, collection por
 
 	cloudSvc := service.NewYandexCloudService(s3)
 
-	musicSvc := service.NewMusicService(trackRepo, artistRepo, albumRepo, musicLinkRepo, trackPreviewRepo, albumArtistRepo, parsingSvc, cloudSvc)
+	musicSvc := service.NewMusicService(trackRepo, artistRepo, albumRepo, musicLinkRepo, trackPreviewRepo, albumArtistRepo, genreRepo, parsingSvc, cloudSvc)
 
 	collectionSvc := service.NewCollectionService(musicSvc, collection)
 
@@ -36,9 +37,8 @@ func Routes(r *gin.RouterGroup, db ports.DBPort, s3 ports.S3Port, collection por
 
 	parsingHandler := NewParsingHandler(musicSvc)
 
-	musicRoute := r.Group("/music")
-	{
-		musicRoute.GET("/:id", parsingHandler.GetMusicByID)
-		musicRoute.POST("/find", parsingHandler.FindMusic)
-	}
+	r.GET("/track/:id", parsingHandler.GetTrackByID)
+	r.GET("/album/:id", parsingHandler.GetAlbumByID)
+	r.GET("/album/:album_id/track/:track_id", parsingHandler.GetAlbumTrackByID)
+	r.POST("/music/search", parsingHandler.SearchMusic)
 }

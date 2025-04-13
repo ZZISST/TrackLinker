@@ -3,15 +3,15 @@ package service
 import "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/ports"
 
 type ICloudService interface {
-	UploadTrackPreview(mp3URL, title, artist string) (previewAudioUrl *string, err error)
+	UploadTrackPreview(mp3URL, title, artistNames string) (previewAudioUrl *string, err error)
 }
 
 type YandexCloudService struct {
 	s3 ports.S3Port
 }
 
-func (s *YandexCloudService) UploadTrackPreview(mp3URL, title, artist string) (previewAudioUrl *string, err error) {
-	previewAudioUrl, err = s.s3.UploadTrackPreview(mp3URL, title, artist)
+func (s *YandexCloudService) UploadTrackPreview(mp3URL, title, artistNames string) (previewAudioUrl *string, err error) {
+	previewAudioUrl, err = s.s3.UploadTrackPreview(mp3URL, title, artistNames)
 	if err != nil {
 		return nil, err
 	}

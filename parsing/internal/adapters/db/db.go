@@ -178,8 +178,18 @@ func (d *Adapter) applyOptions(opts ...ports.FindOption) *gorm.DB {
 		query = query.Order(opt.Order)
 	}
 
+	if opt.Group != "" {
+		query = query.Group(opt.Group)
+	}
+
 	if opt.Offset != 0 {
 		query = query.Offset(opt.Offset)
+	}
+
+	if opt.Having != nil {
+		for _, q := range opt.Having {
+			query = query.Having(q.Query, q.Args...)
+		}
 	}
 
 	if opt.Limit != 0 {

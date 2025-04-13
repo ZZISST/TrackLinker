@@ -9,7 +9,6 @@ import (
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/dto"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/service"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/response"
-	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/utils"
 )
 
 type ParsingHandler struct {
@@ -22,27 +21,67 @@ func NewParsingHandler(service service.IMusicService) *ParsingHandler {
 	}
 }
 
-// GetMusicByID godoc
+// GetTrackByID godoc
 //
-//	@Summary	get music details
-//	@Tags		music
+//	@Summary	get track details
+//	@Tags		track
 //	@Produce	json
-//	@Param		id	path		string	true	"Music ID"
-//	@Success	200	{object}	dto.MusicTrack
-//	@Router		/api/v1/music/{id} [get]
-func (h *ParsingHandler) GetMusicByID(c *gin.Context) {
-	var res dto.MusicTrack
+//	@Param		id	path		string	true	"Track ID"
+//	@Success	200	{object}	model.Track
+//	@Router		/api/v1/track/{id} [get]
+func (h *ParsingHandler) GetTrackByID(c *gin.Context) {
+	trackID := c.Param("id")
 
-	musicId := c.Param("id")
-
-	music, err := h.service.GetTrackByID(c, musicId)
+	track, err := h.service.GetTrackByID(c, trackID)
 	if err != nil {
 		response.Error(c, http.StatusNotFound, err, "Not found")
 		return
 	}
 
-	utils.Copy(&res, &music)
-	response.JSON(c, http.StatusOK, res)
+	response.JSON(c, http.StatusOK, track)
+}
+
+// GetAlbumByID godoc
+//
+//	@Summary	get album details
+//	@Tags		album
+//	@Produce	json
+//	@Param		id	path		string	true	"Album ID"
+//	@Success	200	{object}	model.Album
+//	@Router		/api/v1/album/{id} [get]
+func (h *ParsingHandler) GetAlbumByID(c *gin.Context) {
+	albumID := c.Param("id")
+
+	album, err := h.service.GetAlbumByID(c, albumID)
+	if err != nil {
+		response.Error(c, http.StatusNotFound, err, "Not found")
+		return
+	}
+
+	response.JSON(c, http.StatusOK, album)
+}
+
+// GetAlbumTrackByID godoc
+//
+//	@Summary	get album's track details
+//	@Tags		track
+//	@Produce	json
+//	@Param		album_id	path		string	true	"Album ID"
+//	@Param		track_id	path		string	true	"Track ID"
+//	@Success	200	{object}	model.Track
+//	@Router		/api/v1/album/{album_id}/track/{track_id} [get]
+func (h *ParsingHandler) GetAlbumTrackByID(c *gin.Context) {
+	albumID := c.Param("album_id")
+	trackID := c.Param("track_id")
+
+	// Call the service to get the track details
+	track, err := h.service.GetAlbumTrackByID(c, albumID, trackID)
+	if err != nil {
+		response.Error(c, http.StatusNotFound, err, "Track not found")
+		return
+	}
+
+	response.JSON(c, http.StatusOK, track)
 }
 
 // FindMusic godoc
@@ -51,9 +90,9 @@ func (h *ParsingHandler) GetMusicByID(c *gin.Context) {
 //	@Tags		music
 //	@Produce	json
 //	@Param		_	   body		 dto.FindMusicReq	true	"Body"
-//	@Success    200    {object}  dto.MusicResultDto
-//	@Router     /api/v1/music/find [post]
-func (h *ParsingHandler) FindMusic(c *gin.Context) {
+//	@Success    200    {object}  dto.MusicResult
+//	@Router     /api/v1/music/search [post]
+func (h *ParsingHandler) SearchMusic(c *gin.Context) {
 	var req dto.FindMusicReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Error(c, http.StatusBadRequest, err, "Invalid parameters")

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"time"
+	"strings"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/dto"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
@@ -17,13 +17,17 @@ import (
 )
 
 type IMusicService interface {
-	GetTrackByID(ctx context.Context, id string) (*dto.MusicTrack, error)
-	GetAlbumByID(ctx context.Context, id string) (*dto.MusicAlbum, error)
-	FindMusic(link url.URL) (*dto.MusicResultDto, error)
-	findTrackByLink(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*dto.MusicTrack, error)
-	findTrackByData(ctx context.Context, name string, artists []string) (*dto.MusicTrack, error)
-	findAlbum(ctx context.Context, link url.URL) (*dto.MusicAlbum, error)
-	upsertTrack(ctx context.Context, data *model.ParsedMusic, links *model.LinkData, mtype model.MusicRequestType) (*dto.MusicTrack, error)
+	GetTrackByID(ctx context.Context, id string) (*model.Track, error)
+	GetAlbumByID(ctx context.Context, id string) (*model.Album, error)
+	GetAlbumTrackByID(ctx context.Context, albumId string, trackId string) (*model.Track, error)
+	FindMusic(link url.URL) (*dto.MusicResult, error)
+	findTrackByLink(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*model.Track, error)
+	findAlbumByLink(ctx context.Context, link url.URL) (*model.Album, error)
+	findAlbumTrackByLink(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*model.Track, error)
+	upsertTrack(ctx context.Context, data *model.ParsingTrack, links *model.LinkData, mtype model.MusicRequestType) (*model.Track, error)
+	// todo
+	// upsertAlbum(ctx context.Context, data *model.ParsedMusic, links *model.LinkData, mtype model.MusicRequestType) (*model.Track, error)
+	findTrackByData(ctx context.Context, name string, artists []string) (*model.Track, error)
 }
 
 type MusicService struct {
@@ -33,54 +37,153 @@ type MusicService struct {
 	MusicLinkRepo    repository.IMusicLinkRepository
 	TrackPreviewRepo repository.ITrackPreviewRepository
 	AlbumArtistRepo  repository.IAlbumArtistRepository
+	GenreRepo        repository.IGenreRepository
 	ParsingSvc       IParsingService
 	CloudSvc         ICloudService
 	LinkFormater     modelutils.ILinkFormater
 }
 
-// GetAlbumByID implements IMusicService.
-func (m MusicService) GetAlbumByID(ctx context.Context, id string) (*dto.MusicAlbum, error) {
+func (m MusicService) GetTrackByID(ctx context.Context, id string) (*model.Track, error) {
+
+	track, err := m.TrackRepo.GetTrackByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range track.MusicLinks {
+		formattedOutputLink, err := m.LinkFormater.FormatLinkFromDBToOutput(track.MusicLinks[i].URL, track.MusicLinks[i].Service)
+		if err != nil {
+			return nil, fmt.Errorf("failed to format link from db to output: %w", err)
+		}
+
+		track.MusicLinks[i].URL = *formattedOutputLink
+	}
+
+	return track, nil
+}
+
+func (m MusicService) GetAlbumByID(ctx context.Context, id string) (*model.Album, error) {
 
 	album, err := m.AlbumRepo.GetAlbumByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &dto.MusicAlbum{
-		AlbumID:    album.ID,
-		Name:       album.Title,
-		Artists:    album.Artists,
-		CoverImage: album.CoverImage,
-		ReleasedAt: album.ReleasedAt,
-		CreatedAt:  album.CreatedAt,
-		Links:      album.MusicLinks,
-		Tracks:     album.Tracks,
-	}, nil
+	// format album links
+	for i := range album.MusicLinks {
+		formattedOutputLink, err := m.LinkFormater.FormatLinkFromDBToOutput(album.MusicLinks[i].URL, album.MusicLinks[i].Service)
+		if err != nil {
+			return nil, fmt.Errorf("failed to format link from db to output: %w", err)
+		}
+
+		album.MusicLinks[i].URL = *formattedOutputLink
+	}
+
+	// Format album's tracks links
+	for i := range album.Tracks {
+		track := &album.Tracks[i] // Get a pointer to the current track
+		for j := range track.MusicLinks {
+			formattedOutputLink, err := m.LinkFormater.FormatLinkFromDBToOutput(track.MusicLinks[j].URL, track.MusicLinks[j].Service)
+			if err != nil {
+				return nil, fmt.Errorf("failed to format link from db to output: %w", err)
+			}
+
+			// Perform formatting or processing on the music link
+			track.MusicLinks[j].URL = *formattedOutputLink
+		}
+	}
+
+	return album, nil
 }
 
-// findAlbum implements IMusicService.
-func (m MusicService) findAlbum(ctx context.Context, link url.URL) (*dto.MusicAlbum, error) {
-	var music *dto.MusicAlbum
+func (m MusicService) GetAlbumTrackByID(ctx context.Context, albumId string, trackId string) (*model.Track, error) {
 
-	album, err := m.AlbumRepo.GetAlbumByMusicLink(ctx, link.String())
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		log.Printf("Album: %+v, Error: %v", album, err)
+	track, err := m.TrackRepo.GetTrackByAlbumAndTrackID(ctx, albumId, trackId)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range track.MusicLinks {
+		formattedOutputLink, err := m.LinkFormater.FormatLinkFromDBToOutput(track.MusicLinks[i].URL, track.MusicLinks[i].Service)
+		if err != nil {
+			return nil, fmt.Errorf("failed to format link from db to output: %w", err)
+		}
+
+		track.MusicLinks[i].URL = *formattedOutputLink
+	}
+
+	return track, nil
+}
+
+func (m MusicService) FindMusic(link url.URL) (*dto.MusicResult, error) {
+
+	var music *dto.MusicResult
+
+	musicType, err := m.LinkFormater.IdentifyMusicTypeByLink(&link)
+	if err != nil {
+		return nil, fmt.Errorf("failed to identify music type by link: %w", err)
+	}
+
+	switch *musicType {
+	case model.MusicRequestTrack:
+
+		track, err := m.findTrackByLink(context.Background(), link, *musicType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find track: %w", err)
+		}
+		data, err := json.Marshal(track)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal track: %w", err)
+		}
+		music = &dto.MusicResult{
+			Data: data,
+		}
+
+	case model.MusicRequestAlbum:
+
+		album, err := m.findAlbumByLink(context.Background(), link)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find album: %w", err)
+		}
+		data, err := json.Marshal(album)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal album: %w", err)
+		}
+		music = &dto.MusicResult{
+			Data: data,
+		}
+
+	case model.MusicRequestTrackInAlbum:
+
+		track, err := m.findAlbumTrackByLink(context.Background(), link, *musicType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find track in album: %w", err)
+		}
+		data, err := json.Marshal(track)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal track: %w", err)
+		}
+		music = &dto.MusicResult{
+			Data: data,
+		}
+
+	default:
+		return nil, fmt.Errorf("wrong link")
 	}
 
 	return music, nil
 }
 
-// findTrackByLink implements IMusicService.
-func (m MusicService) findTrackByLink(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*dto.MusicTrack, error) {
+func (m MusicService) findTrackByLink(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*model.Track, error) {
 
-	var music *dto.MusicTrack
+	var music *model.Track
 
 	track, err := m.TrackRepo.GetTrackByMusicLink(context.Background(), link)
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Printf("Track: %+v, Error: %v", track, err)
 
-		linkData, fullData, error := m.ParsingSvc.GetMusicDataByLink(&link)
+		linkData, fullData, error := m.ParsingSvc.GetTrackDataByLink(&link)
 		if error != nil {
 			return nil, fmt.Errorf("failed to get music data: %w", error)
 		}
@@ -109,24 +212,84 @@ func (m MusicService) findTrackByLink(ctx context.Context, link url.URL, mtype m
 
 			track.MusicLinks[i].URL = *formattedOutputLink
 		}
+		music = track
+	}
 
-		music = &dto.MusicTrack{
-			TrackID:      track.ID,
-			Album:        track.Album,
-			Name:         track.Title,
-			Artists:      track.Album.Artists,
-			Links:        track.MusicLinks,
-			TrackPreview: track.TrackPreview,
+	return music, nil
+}
+
+func (m MusicService) findAlbumByLink(ctx context.Context, link url.URL) (*model.Album, error) {
+	var music *model.Album
+
+	album, err := m.AlbumRepo.GetAlbumByMusicLink(ctx, link.String())
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+
+		// make
+		log.Printf("Album: %+v, Error: %v", album, err)
+	}
+
+	return music, nil
+}
+
+func (m MusicService) findAlbumTrackByLink(ctx context.Context, link url.URL, mtype model.MusicRequestType) (*model.Track, error) {
+	var music *model.Track
+
+	track, err := m.TrackRepo.GetTrackByMusicLink(context.Background(), link)
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		log.Printf("Track: %+v, Error: %v", track, err)
+
+		linkData, fullData, error := m.ParsingSvc.GetTrackDataByLink(&link)
+		if error != nil {
+			return nil, fmt.Errorf("failed to get music data: %w", error)
 		}
+
+		// upsert album and album this track after we need in Background insert other..
+
+		newMusic, err := m.upsertTrack(context.Background(), fullData, linkData, mtype)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upsert track: %w", err)
+		}
+
+		return newMusic, nil
+
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to find track by music link: %w", err)
+	}
+
+	// If the track is not found, return an error
+	if track == nil {
+		return nil, fmt.Errorf("track not found for link: %s", link.String())
+	} else {
+
+		for i := range track.MusicLinks {
+			formattedOutputLink, err := m.LinkFormater.FormatLinkFromDBToOutput(track.MusicLinks[i].URL, track.MusicLinks[i].Service)
+			if err != nil {
+				return nil, fmt.Errorf("failed to format link from db to output: %w", err)
+			}
+
+			track.MusicLinks[i].URL = *formattedOutputLink
+		}
+		music = track
 	}
 
 	return music, nil
 }
 
 // In this method we know that THERE IS NO TRACK IN DB and maybe some Artists too! Uses by collection microservice
-func (m MusicService) findTrackByData(ctx context.Context, name string, artists []string) (*dto.MusicTrack, error) {
+func (m MusicService) findTrackByData(ctx context.Context, name string, artists []string) (*model.Track, error) {
 	// artists[0] полная хуйня надо менять на artists []string
-	linkData, fullData, err := m.ParsingSvc.GetMusicDataByData(&name, &artists[0])
+	artistNames := make([]string, len(artists))
+
+	// Extract artist names from music.Artists
+	for i, artistName := range artists {
+		artistNames[i] = artistName // Assuming each artist has a Name field
+	}
+
+	// Join the artist names into a single string, separated by commas
+	artistStr := strings.Join(artistNames, ", ")
+
+	linkData, fullData, err := m.ParsingSvc.GetTrackDataByData(&name, &artistStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get music data by data: %w", err)
 	}
@@ -139,84 +302,10 @@ func (m MusicService) findTrackByData(ctx context.Context, name string, artists 
 	return newMusic, nil
 }
 
-func (m MusicService) FindMusic(link url.URL) (*dto.MusicResultDto, error) {
-
-	var music *dto.MusicResultDto
-
-	musicType, err := m.LinkFormater.IdentifyMusicTypeByLink(&link)
-	if err != nil {
-		return nil, fmt.Errorf("failed to identify music type by link: %w", err)
-	}
-
-	switch *musicType {
-	case model.MusicRequestTrack, model.MusicRequestTrackInAlbum:
-
-		track, err := m.findTrackByLink(context.Background(), link, *musicType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find track: %w", err)
-		}
-		data, err := json.Marshal(track)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal track: %w", err)
-		}
-		music = &dto.MusicResultDto{
-			Type: string(model.MusicRequestTrack),
-			Data: data,
-		}
-
-	case model.MusicRequestAlbum:
-
-		album, err := m.findAlbum(context.Background(), link)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find album: %w", err)
-		}
-		data, err := json.Marshal(album)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal album: %w", err)
-		}
-		music = &dto.MusicResultDto{
-			Type: string(model.MusicRequestAlbum),
-			Data: data,
-		}
-	default:
-		return nil, fmt.Errorf("wrong link")
-	}
-
-	return music, nil
-}
-
-// GetTrackByID implements IMusicService.
-func (m MusicService) GetTrackByID(ctx context.Context, id string) (*dto.MusicTrack, error) {
-
-	track, err := m.TrackRepo.GetTrackByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range track.MusicLinks {
-		formattedOutputLink, err := m.LinkFormater.FormatLinkFromDBToOutput(track.MusicLinks[i].URL, track.MusicLinks[i].Service)
-		if err != nil {
-			return nil, fmt.Errorf("failed to format link from db to output: %w", err)
-		}
-
-		track.MusicLinks[i].URL = *formattedOutputLink
-	}
-
-	return &dto.MusicTrack{
-		TrackID:      track.ID,
-		Album:        track.Album,
-		Name:         track.Title,
-		Artists:      track.Album.Artists,
-		Links:        track.MusicLinks,
-		TrackPreview: track.TrackPreview,
-	}, nil
-}
-
 // upsertTrack implements IMusicService.
-func (m MusicService) upsertTrack(ctx context.Context, data *model.ParsedMusic, links *model.LinkData, mtype model.MusicRequestType) (*dto.MusicTrack, error) {
-	var music dto.MusicTrack
+func (m MusicService) upsertTrack(ctx context.Context, data *model.ParsingTrack, links *model.LinkData, mtype model.MusicRequestType) (*model.Track, error) {
+	var music model.Track
 
-	// Define the transaction handler
 	handler := func() error {
 
 		log.Printf("Parsed Music: %+v", data)
@@ -238,45 +327,80 @@ func (m MusicService) upsertTrack(ctx context.Context, data *model.ParsedMusic, 
 			return fmt.Errorf("failed to format deezer to db: %w", err)
 		}
 
+		// Костыль потому что FullParser может быть не Deezer УЧЕСТЬ (можно impl GetUrl для Deezer
 		links.Links[data.Link] = model.LinkResult{
 			URL:     *formattedDeezer,
 			Service: model.Deezer,
 		}
 
-		artist, err := m.ArtistRepo.GetArtistByName(ctx, data.Artist.Name)
-		log.Printf("Artist: %+v, Error: %v", artist, err)
-		if err != nil {
-			log.Printf("Error: %v", err)
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				newArtist := model.NewArtist(data.Artist.Name, data.Artist.Link)
-				if err := m.ArtistRepo.Create(ctx, &newArtist); err != nil {
-					return fmt.Errorf("failed to create artist: %w", err)
-				}
-				log.Printf("New Artist: %+v", newArtist)
-				music.Artists = append(music.Artists, newArtist)
-			} else {
-				return fmt.Errorf("failed to get artist by name: %w", err)
-			}
-		} else {
+		// Несколько артистов
+		for i := range data.Artists {
+			artist, err := m.ArtistRepo.GetArtistByName(ctx, data.Artists[i].Name)
 
-			if artist != nil {
-				music.Artists = append(music.Artists, *artist)
-				log.Printf(music.Artists[0].Name)
+			if err != nil {
+
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					newArtist := model.NewArtist(data.Artists[i].Name, data.Artists[i].Cover)
+					if err := m.ArtistRepo.Create(ctx, &newArtist); err != nil {
+						return fmt.Errorf("failed to create artist: %w", err)
+					}
+					log.Printf("New Artist: %+v", newArtist)
+					music.Artists = append(music.Artists, newArtist)
+				}
+
+				return fmt.Errorf("failed to get artist by name: %w", err)
+			} else {
+				if artist != nil {
+					music.Artists = append(music.Artists, *artist)
+					log.Printf(artist.Name)
+				}
 			}
 		}
 
-		album, err := m.AlbumRepo.GetAlbumByArtistIDAndTitle(ctx, music.Artists[0].ID, data.Title)
+		// Check Genre
+		for i := range data.Album.Genres {
+			genre, err := m.GenreRepo.GetGenreByName(ctx, data.Album.Genres[i].Name)
+
+			if err != nil {
+
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					newGenre := model.NewGenre(data.Album.Genres[i].Name)
+					if err := m.GenreRepo.Create(ctx, &newGenre); err != nil {
+						return fmt.Errorf("failed to create genre: %w", err)
+					}
+					log.Printf("New Genre: %+v", newGenre)
+					music.Album.Genres = append(music.Album.Genres, newGenre)
+				}
+
+				return fmt.Errorf("failed to get genre by name: %w", err)
+			} else {
+				if genre != nil {
+					music.Album.Genres = append(music.Album.Genres, *genre)
+					log.Printf(genre.Name)
+				}
+			}
+		}
+
+		// Extract artist IDs from music.Artists
+		artistIDs := make([]string, len(music.Artists))
+		for i, artist := range music.Artists {
+			artistIDs[i] = artist.ID // Assuming each artist has an ID field of type string
+		}
+
+		album, err := m.AlbumRepo.GetAlbumByArtistsIDAndTitle(ctx, artistIDs, data.Title)
 		log.Printf("Album: %+v, Error: %v", album, err)
 
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 
-				newAlbum := model.NewAlbum(data.Title, music.Artists[0].ID, data.Album.Cover, time.Now())
+				newAlbum := model.NewAlbum(data.Title, data.Album.Cover, data.ReleaseDate, data.Album.RecordType)
 				if err := m.AlbumRepo.Create(ctx, &newAlbum); err != nil {
 					return fmt.Errorf("failed to create album: %w", err)
 				}
+
 				music.Album = newAlbum
 				log.Printf("New Album: %+v", newAlbum)
+
 			} else {
 				return fmt.Errorf("failed to get album by name: %w", err)
 			}
@@ -292,19 +416,27 @@ func (m MusicService) upsertTrack(ctx context.Context, data *model.ParsedMusic, 
 				return fmt.Errorf("failed to add relation for artist %s: %w", artist.ID, err)
 			}
 		}
-		newTrack := model.NewTrack(data.Title, music.Album.ID)
+
+		newTrack := model.NewTrack(data.Title, data.DurationSec, data.TrackPosition, data.DiscNumber, data.ReleaseDate)
 		if err := m.TrackRepo.Create(ctx, &newTrack); err != nil {
 			return fmt.Errorf("failed to create track: %w", err)
 		}
 
 		log.Printf("New Track: %+v", newTrack)
 
-		music.Name = newTrack.Title
-		music.TrackID = newTrack.ID
+		// Upload to S3
 
-		log.Printf("Music: %+v", music)
+		artistNames := make([]string, len(music.Artists))
 
-		previewAudioUrl, err := m.CloudSvc.UploadTrackPreview(data.Preview, music.Name, music.Artists[0].Name)
+		// Extract artist names from music.Artists
+		for i, artist := range music.Artists {
+			artistNames[i] = artist.Name // Assuming each artist has a Name field
+		}
+
+		// Join the artist names into a single string, separated by commas
+		artistStr := strings.Join(artistNames, ", ")
+
+		previewAudioUrl, err := m.CloudSvc.UploadTrackPreview(data.Preview, music.Title, artistStr)
 		if err != nil {
 			return fmt.Errorf("failed to upload track preview: %w", err)
 		}
@@ -337,7 +469,7 @@ func (m MusicService) upsertTrack(ctx context.Context, data *model.ParsedMusic, 
 
 			musicLink.URL = *formattedOutputLink
 
-			music.Links = append(music.Links, musicLink)
+			music.MusicLinks = append(music.MusicLinks, musicLink)
 		}
 
 		return nil
@@ -352,7 +484,7 @@ func (m MusicService) upsertTrack(ctx context.Context, data *model.ParsedMusic, 
 	return &music, nil
 }
 
-func NewMusicService(trackRepo repository.ITrackRepository, artistRepo repository.IArtistRepository, albumRepo repository.IAlbumRepository, musicLinkRepo repository.IMusicLinkRepository, trackPreviewRepo repository.ITrackPreviewRepository, albumArtistRepo repository.IAlbumArtistRepository, parsingSvc IParsingService, cloudSvc ICloudService) IMusicService {
+func NewMusicService(trackRepo repository.ITrackRepository, artistRepo repository.IArtistRepository, albumRepo repository.IAlbumRepository, musicLinkRepo repository.IMusicLinkRepository, trackPreviewRepo repository.ITrackPreviewRepository, albumArtistRepo repository.IAlbumArtistRepository, genreRepo repository.IGenreRepository, parsingSvc IParsingService, cloudSvc ICloudService) IMusicService {
 	return MusicService{
 		TrackRepo:        trackRepo,
 		AlbumRepo:        albumRepo,
@@ -360,6 +492,7 @@ func NewMusicService(trackRepo repository.ITrackRepository, artistRepo repositor
 		MusicLinkRepo:    musicLinkRepo,
 		TrackPreviewRepo: trackPreviewRepo,
 		AlbumArtistRepo:  albumArtistRepo,
+		GenreRepo:        genreRepo,
 		ParsingSvc:       parsingSvc,
 		CloudSvc:         cloudSvc,
 		LinkFormater:     modelutils.NewLinkFormater(),
