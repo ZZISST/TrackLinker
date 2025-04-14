@@ -1,4 +1,13 @@
-package service
+/*
+Package service provides implementations for music service interactions.
+
+Authors:
+
+	Vladimir Stabrovskiy @godnesty
+	Alexander Subbotin @CAHEK_aka_zzisst
+	Nikita Kizhvatkin @djsega1
+*/
+package musicservice
 
 import (
 	"compress/gzip"
@@ -12,14 +21,43 @@ import (
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 )
 
-type YandexService struct {
-}
+/*
+AppleService implements methods to interact with Yandex's music service.
 
+Author: Vladimir Stabrovskiy @godnesty
+*/
+type YandexService struct{}
+
+/*
+Service returns the music service type represented by YandexService.
+
+Parameters:
+
+	None
+
+Returns:
+  - model.MusicService: The type of music service (Yandex).
+
+Author: Vladimir Stabrovskiy @godnesty
+*/
 func (s *YandexService) Service() model.MusicService {
 	return model.Yandex
 }
 
-func (s *YandexService) GetData(trackURL string) (title, artist string, err error) {
+/*
+GetTrackData retrieves track metadata from a given Yandex Music URL.
+
+Parameters:
+  - trackUrl (string): The URL of the track on Yandex Music.
+
+Returns:
+  - title (string): The title of the track.
+  - artist (string): The artist of the track.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *YandexService) GetTrackData(trackURL string) (title, artist string, err error) {
 	trackID, err := extractTrackID(trackURL)
 	if err != nil {
 		return "", "", err
@@ -70,7 +108,20 @@ func (s *YandexService) GetData(trackURL string) (title, artist string, err erro
 	return title, strings.Join(artists, ", "), nil
 }
 
-func (s *YandexService) GetUrl(title, artist string) (trackURL string, err error) {
+/*
+GetTrackUrl constructs a track URL based on the given title and artist by querying the Yandex Music API.
+
+Parameters:
+  - title (string): The title of the track.
+  - artist (string): The name of the artist.
+
+Returns:
+  - trackUrl (string): The URL of the track on Yandex Music.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *YandexService) GetTrackUrl(title, artist string) (trackURL string, err error) {
 	searchURL := "https://music.yandex.ru/handlers/music-search.jsx"
 	query := fmt.Sprintf("%s %s", title, artist)
 
@@ -122,6 +173,52 @@ func (s *YandexService) GetUrl(title, artist string) (trackURL string, err error
 
 }
 
+/*
+GetAlbumUrl constructs an album URL based on the given title and artist by querying the Yandex Music API.
+
+Parameters:
+  - title (string): The title of the album.
+  - artist (string): The name of the artist.
+
+Returns:
+  - trackUrl (string): The URL of the album on Yandex Music.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *YandexService) GetAlbumUrl(title, artist string) (trackUrl string, err error) {
+	return "", nil
+}
+
+/*
+GetAlbumData retrieves album metadata from a given Yandex Music URL.
+
+Parameters:
+  - trackUrl (string): The URL of the album on Yandex Music.
+
+Returns:
+  - title (string): The title of the album.
+  - artist (string): The artist of the album.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *YandexService) GetAlbumData(trackUrl string) (title string, artist string, err error) {
+	return "", "", nil
+}
+
+/*
+readResponseBody reads and returns the body of an HTTP response.
+
+Parameters:
+  - resp (*http.Response): The HTTP response to read the body from.
+
+Returns:
+  - []byte: The body of the HTTP response as a byte slice.
+  - error: An error if reading the body fails.
+
+Author: Alexander Subbotin @CAHEK_aka_zzisst
+*/
 func readResponseBody(resp *http.Response) ([]byte, error) {
 	var reader io.ReadCloser
 	var err error
@@ -145,6 +242,18 @@ func readResponseBody(resp *http.Response) ([]byte, error) {
 	return body, nil
 }
 
+/*
+addHeaders adds necessary headers to an HTTP request.
+
+Parameters:
+  - req (*http.Request): The HTTP request to which headers will be added.
+
+Returns:
+
+	None
+
+Author: Alexander Subbotin @CAHEK_aka_zzisst
+*/
 func addHeaders(req *http.Request) {
 	headers := map[string]string{
 		"User-Agent":       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 YaBrowser/25.2.0.0 Safari/537.36",
@@ -159,6 +268,18 @@ func addHeaders(req *http.Request) {
 	}
 }
 
+/*
+extractTrackID extracts the track ID from a given Yandex Music track URL.
+
+Parameters:
+  - trackURL (string): The URL of the track on Yandex Music.
+
+Returns:
+  - string: The extracted track ID.
+  - error: An error if the track ID cannot be extracted.
+
+Author: Alexander Subbotin @CAHEK_aka_zzisst
+*/
 func extractTrackID(trackURL string) (string, error) {
 	parsedURL, err := url.Parse(trackURL)
 	if err != nil {
@@ -175,6 +296,18 @@ func extractTrackID(trackURL string) (string, error) {
 	return "", fmt.Errorf("не удалось извлечь trackID из URL")
 }
 
+/*
+NewYandexService creates and returns a new instance of YandexService.
+
+Parameters:
+
+	None
+
+Returns:
+  - IParsingMusicService: A new instance of YandexService.
+
+Author: Vladimir Stabrovskiy @godnesty
+*/
 func NewYandexService() IParsingMusicService {
 	return &YandexService{}
 }

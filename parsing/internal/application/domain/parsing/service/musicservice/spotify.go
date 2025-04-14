@@ -1,83 +1,70 @@
-package service
+/*
+Package service provides implementations for music service interactions.
+
+Authors:
+
+	Vladimir Stabrovskiy @godnesty
+	Alexander Subbotin @CAHEK_aka_zzisst
+	Nikita Kizhvatkin @djsega1
+*/
+package musicservice
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
+	m2 "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/config"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/utils"
 )
 
-// SpotifyAuthService управляет аутентификацией в Spotify API.
-type SpotifyAuthService struct {
-	AccessToken string
-	ExpiresAt   time.Time
+/*
+SpotifyService implements methods to interact with Spotify's music service.
+
+Author: Vladimir Stabrovskiy @godnesty
+*/
+type SpotifyService struct {
+	authService SpotifyAuthService
 	cfg         *config.Schema
 }
 
-// authenticate получает новый access token.
-func (s *SpotifyAuthService) authenticate() error {
-	clientID := s.cfg.SpotifyClientID
-	clientSecret := s.cfg.SpotifyClientSecret
+/*
+Service returns the music service type represented by SpotifyService.
 
-	data := url.Values{}
-	data.Set("grant_type", "client_credentials")
+Parameters:
 
-	req, err := http.NewRequest("POST", "https://accounts.spotify.com/api/token", strings.NewReader(data.Encode()))
-	if err != nil {
-		return fmt.Errorf("ошибка создания запроса: %v", err)
-	}
+	None
 
-	authHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte(clientID+":"+clientSecret))
-	req.Header.Set("Authorization", authHeader)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+Returns:
+  - model.MusicService: The type of music service (Spotify).
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("ошибка выполнения запроса: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("ошибка получения токена: %s", body)
-	}
-
-	var authResp struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
-		return fmt.Errorf("ошибка декодирования ответа: %v", err)
-	}
-
-	s.AccessToken = authResp.AccessToken
-	s.ExpiresAt = time.Now().Add(time.Duration(authResp.ExpiresIn) * time.Second)
-	return nil
+Author: Vladimir Stabrovskiy @godnesty
+*/
+func (s *SpotifyService) Service() m2.MusicService {
+	return m2.Spotify
 }
 
-// getValidToken возвращает действительный токен, обновляя его при необходимости.
-func (s *SpotifyAuthService) GetValidToken() (string, error) {
-	if time.Now().After(s.ExpiresAt) {
-		if err := s.authenticate(); err != nil {
-			return "", err
-		}
-	}
-	return s.AccessToken, nil
-}
+/*
+GetTrackData retrieves track metadata from a given Spotify Music URL.
 
-// GetTrackInfo получает название трека и имя артиста по ID трека.
-func (s *SpotifyAuthService) GetTrackInfo(trackUrl string) (string, string, error) {
+Parameters:
+  - trackUrl (string): The URL of the track on Spotify Music.
+
+Returns:
+  - title (string): The title of the track.
+  - artist (string): The artist of the track.
+  - err (error): An error if the operation fails.
+
+Author: Alexander Subbotin @CAHEK_aka_zzisst
+*/
+func (s *SpotifyService) GetTrackData(trackUrl string) (title string, artist string, err error) {
 	proxy := s.cfg.ProxyURL
+	service := s.authService
 
-	service := &SpotifyAuthService{}
 	token, err := service.GetValidToken()
 	if err != nil {
 		return "", "", fmt.Errorf("не удалось получить токен: %v", err)
@@ -134,8 +121,22 @@ func (s *SpotifyAuthService) GetTrackInfo(trackUrl string) (string, string, erro
 	return result.Name, result.Artists[0].Name, nil
 }
 
-func SpotifyTrackUrl(title, artist string) (string, error) {
-	service := &SpotifyAuthService{}
+/*
+GetTrackUrl constructs a track URL based on the given title and artist by querying the Spotify API.
+
+Parameters:
+  - title (string): The title of the track.
+  - artist (string): The name of the artist.
+
+Returns:
+  - trackUrl (string): The URL of the track on Spotify.
+  - err (error): An error if the operation fails.
+
+Author: Alexander Subbotin @CAHEK_aka_zzisst
+*/
+func (s *SpotifyService) GetTrackUrl(title, artist string) (TrackUrl string, err error) {
+	proxy := s.cfg.ProxyURL
+	service := s.authService
 	token, err := service.GetValidToken()
 	if err != nil {
 		return "", fmt.Errorf("не удалось получить токен: %v", err)
@@ -152,7 +153,7 @@ func SpotifyTrackUrl(title, artist string) (string, error) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/json")
 
-	proxyUrl, _ := url.Parse("http://C13Bo2:M3b6Zo@138.0.241.86:8000")
+	proxyUrl, _ := url.Parse(proxy)
 
 	client := utils.CreateHTTPClient(proxyUrl)
 	resp, err := client.Do(req)
@@ -185,13 +186,60 @@ func SpotifyTrackUrl(title, artist string) (string, error) {
 	}
 
 	trackURL := result.Tracks.Items[0].ExternalUrls.Spotify
-	fmt.Println(trackURL) // Для отладки, можно убрать
+	fmt.Println(trackURL)
 
 	return trackURL, nil
 }
 
-func NewSpotifyAuthService() SpotifyAuthService {
-	return SpotifyAuthService{
-		cfg: config.GetConfig(),
+/*
+GetAlbumUrl constructs an album URL based on the given title and artist by querying the Spotify API.
+
+Parameters:
+  - title (string): The title of the album.
+  - artist (string): The name of the artist.
+
+Returns:
+  - trackUrl (string): The URL of the album on Spotify.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *SpotifyService) GetAlbumUrl(title, artist string) (trackUrl string, err error) {
+	return "", nil
+}
+
+/*
+GetAlbumData retrieves album metadata from a given Spotify URL.
+
+Parameters:
+  - trackUrl (string): The URL of the album on Spotify.
+
+Returns:
+  - title (string): The title of the album.
+  - artist (string): The artist of the album.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *SpotifyService) GetAlbumData(trackUrl string) (title string, artist string, err error) {
+	return "", "", nil
+}
+
+/*
+NewSpotifyService creates and returns a new instance of SpotifyService.
+
+Parameters:
+
+	None
+
+Returns:
+  - IParsingMusicService: A new instance of SpotifyService.
+
+Author: Vladimir Stabrovskiy @godnesty
+*/
+func NewSpotifyService(auth SpotifyAuthService) IParsingMusicService {
+	return &SpotifyService{
+		authService: auth,
+		cfg:         config.GetConfig(),
 	}
 }

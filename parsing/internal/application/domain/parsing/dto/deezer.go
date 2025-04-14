@@ -1,14 +1,27 @@
 package dto
 
-type DeezerSearch struct {
+type DeezerTrackSearch struct {
 	ID    int `json:"id"`
 	Album struct {
 		ID int `json:"id"`
 	} `json:"album"`
 }
 
-type DeezerResponse struct {
-	Data []DeezerSearch `json:"data"`
+type DeezerTrackResponse struct {
+	Data []DeezerTrackSearch `json:"data"`
+}
+
+type DeezerAlbumnSearch struct {
+	ID    int `json:"id"`
+	Album struct {
+		ID    int    `json:"id"`
+		Title string `json:"title"`
+		Type  string `json:"type"`
+	} `json:"album"`
+}
+
+type DeezerAlbumResponse struct {
+	Data []DeezerAlbumnSearch `json:"data"`
 }
 
 type DeezerContributor struct {

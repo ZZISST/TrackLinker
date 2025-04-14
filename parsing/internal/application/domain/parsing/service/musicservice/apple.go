@@ -1,4 +1,13 @@
-package service
+/*
+Package service provides implementations for music service interactions.
+
+Authors:
+
+	Vladimir Stabrovskiy @godnesty
+	Alexander Subbotin @CAHEK_aka_zzisst
+	Nikita Kizhvatkin @djsega1
+*/
+package musicservice
 
 import (
 	"compress/gzip"
@@ -14,13 +23,43 @@ import (
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/pkg/utils"
 )
 
+/*
+AppleService implements methods to interact with Apple's music service.
+
+Author: Vladimir Stabrovskiy @godnesty
+*/
 type AppleService struct{}
 
+/*
+Service returns the music service type represented by AppleService.
+
+Parameters:
+
+	None
+
+Returns:
+  - model.MusicService: The type of music service (Apple).
+
+Author: Vladimir Stabrovskiy @godnesty
+*/
 func (s *AppleService) Service() model.MusicService {
 	return model.Apple
 }
 
-func (s *AppleService) GetData(trackUrl string) (title string, artist string, err error) {
+/*
+GetTrackData retrieves track metadata from a given Apple Music URL.
+
+Parameters:
+  - trackUrl (string): The URL of the track on Apple Music.
+
+Returns:
+  - title (string): The title of the track.
+  - artist (string): The artist of the track.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *AppleService) GetTrackData(trackUrl string) (title string, artist string, err error) {
 
 	req, err := http.NewRequest("GET", trackUrl, nil)
 	if err != nil {
@@ -81,7 +120,20 @@ func (s *AppleService) GetData(trackUrl string) (title string, artist string, er
 	return title, artist, nil
 }
 
-func (s *AppleService) GetUrl(title, artist string) (trackUrl string, err error) {
+/*
+GetTrackUrl constructs a track URL based on the given title and artist by querying the Apple Music API.
+
+Parameters:
+  - title (string): The title of the track.
+  - artist (string): The name of the artist.
+
+Returns:
+  - trackUrl (string): The URL of the track on Apple Music.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *AppleService) GetTrackUrl(title, artist string) (trackUrl string, err error) {
 	urlStr := "https://amp-api-edge.music.apple.com/v1/catalog/us/search"
 	searchTerm := fmt.Sprintf("%s %s", title, artist)
 
@@ -231,6 +283,52 @@ func (s *AppleService) GetUrl(title, artist string) (trackUrl string, err error)
 	return fmt.Sprintf("https://music.apple.com/us/song/%s", trackID), err
 }
 
+/*
+GetAlbumUrl constructs an album URL based on the given title and artist by querying the Apple Music API.
+
+Parameters:
+  - title (string): The title of the album.
+  - artist (string): The name of the artist.
+
+Returns:
+  - trackUrl (string): The URL of the album on Apple Music.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *AppleService) GetAlbumUrl(title, artist string) (trackUrl string, err error) {
+	return "", nil
+}
+
+/*
+GetAlbumData retrieves album metadata from a given Apple Music URL.
+
+Parameters:
+  - trackUrl (string): The URL of the album on Apple Music.
+
+Returns:
+  - title (string): The title of the album.
+  - artist (string): The artist of the album.
+  - err (error): An error if the operation fails.
+
+Author:
+*/
+func (s *AppleService) GetAlbumData(trackUrl string) (title string, artist string, err error) {
+	return "", "", nil
+}
+
+/*
+NewAppleService creates and returns a new instance of AppleService.
+
+Parameters:
+
+	None
+
+Returns:
+  - IParsingMusicService: A new instance of AppleService.
+
+Author: Vladimir Stabrovskiy @godnesty
+*/
 func NewAppleService() IParsingMusicService {
 	return &AppleService{}
 }
