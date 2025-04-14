@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"net/url"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/ports"
@@ -10,7 +11,7 @@ import (
 type IAlbumRepository interface {
 	Create(ctx context.Context, album *model.Album) error
 	GetAlbumByArtistsIDAndTitle(ctx context.Context, artistIDs []string, title string) (*model.Album, error)
-	GetAlbumByMusicLink(ctx context.Context, musicLink string) (*model.Album, error)
+	GetAlbumByMusicLink(ctx context.Context, musicLink url.URL) (*model.Album, error)
 	GetAlbumByID(ctx context.Context, albumID string) (*model.Album, error)
 }
 
@@ -28,7 +29,7 @@ func (r *AlbumRepository) GetAlbumByID(ctx context.Context, albumID string) (*mo
 	return &album, nil
 }
 
-func (r *AlbumRepository) GetAlbumByMusicLink(ctx context.Context, musicLink string) (*model.Album, error) {
+func (r *AlbumRepository) GetAlbumByMusicLink(ctx context.Context, musicLink url.URL) (*model.Album, error) {
 	var album model.Album
 
 	opts := []ports.FindOption{

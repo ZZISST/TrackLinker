@@ -12,7 +12,6 @@ package collectionservice
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/dto"
@@ -63,28 +62,24 @@ func (s *CollectionService) ProcessParsingTrackRequest(ctx context.Context, d co
 	var requestData dto.RequestParsing
 
 	if err := json.Unmarshal(d.Body, &requestData); err != nil {
-		log.Printf("Ошибка парсинга JSON: %v", err)
-		return nil
+		return err
 	}
 
-	log.Printf("Обработка запроса: Name=%s, Artists=%s", requestData.Name, requestData.Artists)
-
-	musicTrack, err := s.musicService.findTrackByData(ctx, requestData.Name, requestData.Artists)
+	musicTrack, err := s.musicService.FindTrackByData(ctx, requestData.Name, requestData.Artists)
 	if err != nil {
 		return err
 	}
 
-	responseBody, err := json.Marshal(musicTrack)
+	respData, err := json.Marshal(musicTrack)
 	if err != nil {
-		return fmt.Errorf("error marshaling response: %w", err)
+		return err
 	}
 
-	err = s.collection.Publish("", d.ReplyTo, responseBody, "", d.CorrelationId)
+	err = s.collection.Publish("", d.ReplyTo, respData, "", d.CorrelationId)
 	if err != nil {
-		return fmt.Errorf("error sending parsing response: %w", err)
+		return err
 	}
 
-	log.Printf("Ответ успешно отправлен для CorrelationId=%s", d.CorrelationId)
 	return nil
 }
 
@@ -112,11 +107,8 @@ func (s *CollectionService) ListenQueue() {
 			return
 		}
 
-		log.Println("Начало прослушивания очереди parsing.queue")
 		for d := range msgs {
-			log.Printf("Получено сообщение: CorrelationId=%s, ReplyTo=%s", d.CorrelationId, d.ReplyTo)
 			ctx := context.Background()
-			// Вызов ProcessParsingTrackRequest для обработки запроса
 			err := s.ProcessParsingTrackRequest(ctx, d)
 			if err != nil {
 				log.Printf("Error processing parsing request: %v", err)

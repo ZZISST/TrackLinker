@@ -14,6 +14,7 @@ type ILinkFormater interface {
 	IdentifyMusicTypeByLink(link *url.URL) (*model.MusicRequestType, error)
 	FormatLinkForDB(mtype model.MusicRequestType, link *url.URL) (*string, error)
 	FormatLinkFromDBToOutput(dbFormat string, musicSvc model.MusicService) (*string, error)
+	FormatLinksFromDBToOutput(links []model.MusicLink) (*[]model.MusicLink, error)
 }
 
 type LinkFormater struct {
@@ -209,6 +210,18 @@ func (l *LinkFormater) FormatLinkFromDBToOutput(dbFormat string, musicSvc model.
 	}
 
 	return &formattedOutputLink, nil
+}
+
+func (l *LinkFormater) FormatLinksFromDBToOutput(links []model.MusicLink) (*[]model.MusicLink, error) {
+	for i, link := range links {
+		newLink, err := l.FormatLinkFromDBToOutput(link.URL, link.Service)
+		if err != nil {
+			return nil, err
+		}
+		links[i].URL = *newLink
+	}
+
+	return &links, nil
 }
 
 // IdentifyMusicServiceByLink implements ILinkFormater.

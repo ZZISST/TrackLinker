@@ -17,6 +17,7 @@ type ITrackRepository interface {
 	Create(ctx context.Context, track *model.Track) error
 	GetTrackByID(ctx context.Context, trackID string) (*model.Track, error)
 	GetTrackByAlbumAndTrackID(ctx context.Context, albumID string, trackID string) (*model.Track, error)
+	GetTrackByAlbumIDAndTrackName(ctx context.Context, albumID string, trackName string) (*model.Track, error)
 	GetTrackByMusicLink(ctx context.Context, musicLink url.URL) (*model.Track, error)
 	GetTrackInAlbumByMusicLink(ctx context.Context, musicLink url.URL) (*model.Track, error)
 	WithTransaction(handler func() error) error
@@ -133,6 +134,29 @@ func (r *TrackRepository) GetTrackByAlbumAndTrackID(ctx context.Context, albumID
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("track not found for albumID: %s and trackID: %s", albumID, trackID)
+		}
+		return nil, fmt.Errorf("failed to fetch track: %w", err)
+	}
+
+	return &track, nil
+}
+
+func (r *TrackRepository) GetTrackByAlbumIDAndTrackName(ctx context.Context, albumID string, trackName string) (*model.Track, error) {
+	var track model.Track
+
+	// Query the database for the track with the given albumID and trackName
+	err := r.db.FindOne(ctx, &track,
+		ports.WithQuery(ports.NewQuery("album_id = ? AND title = ?", albumID, trackName)),
+		ports.WithPreload([]string{
+			"Album",
+			"Album.Artists",
+			"TrackPreview",
+			"MusicLinks",
+		}))
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("track not found for albumID: %s and trackName: %s", albumID, trackName)
 		}
 		return nil, fmt.Errorf("failed to fetch track: %w", err)
 	}
