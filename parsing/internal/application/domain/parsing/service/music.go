@@ -254,11 +254,7 @@ func (m MusicService) findTrackByLink(ctx context.Context, link url.URL) (*dto.M
 		}
 
 		// Upload preview to S3
-		artistNames := make([]string, len(fullData.Artists))
-		for i, artist := range fullData.Artists {
-			artistNames[i] = artist.Name
-		}
-		artistStr := strings.Join(artistNames, ", ")
+		artistStr := formatArtistNames(fullData.Artists)
 		previewAudioUrl, err := m.CloudSvc.UploadTrackPreview(fullData.Preview, fullData.Title, artistStr)
 		if err != nil {
 			return nil, err
@@ -340,6 +336,7 @@ func (m MusicService) findAlbumByLink(ctx context.Context, link url.URL) (*dto.M
 		builder.SetGenres(ctx, fullData.Genres)
 		builder.SetAlbum(ctx, fullData.Title, fullData.Cover, fullData.ReleaseDate, fullData.RecordType)
 		builder.SetTracks(ctx, fullData.Tracks)
+		builder.SetTrackPreview(ctx, "")
 		builder.SetMusicLinks(ctx, linkData.Links)
 
 		music, err = builder.GetMusic()
@@ -412,12 +409,8 @@ func (m MusicService) findAlbumTrackByLink(ctx context.Context, link url.URL) (*
 			parsingTrack = append(parsingTrack, *fullData)
 		}
 
-		// Upload preview to S3
-		artistNames := make([]string, len(fullData.Artists))
-		for i, artist := range fullData.Artists {
-			artistNames[i] = artist.Name
-		}
-		artistStr := strings.Join(artistNames, ", ")
+		// Upload specified track preview to S3
+		artistStr := formatArtistNames(fullData.Artists)
 		previewAudioUrl, err := m.CloudSvc.UploadTrackPreview(fullData.Preview, fullData.Title, artistStr)
 		if err != nil {
 			return nil, err
@@ -526,6 +519,14 @@ func (m MusicService) FindTrackByData(ctx context.Context, name string, artists 
 	}
 
 	return &track, nil
+}
+
+func formatArtistNames(artists []model.ParsingArtist) string {
+	artistNames := make([]string, len(artists))
+	for i, artist := range artists {
+		artistNames[i] = artist.Name
+	}
+	return strings.Join(artistNames, ", ")
 }
 
 /*

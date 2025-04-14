@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/dto"
@@ -37,12 +36,12 @@ func (b *AlbumBuilder) SetArtists(ctx context.Context, parsingArtists []model.Pa
 				newArtist := model.NewArtist(parsingArtist.Name, parsingArtist.Cover)
 
 				if err := b.MusicRepos.ArtistRepo.Create(ctx, &newArtist); err != nil {
-					return fmt.Errorf("failed to create artist: %w", err)
+					return err
 				}
 
 				b.album.Artists = append(b.album.Artists, newArtist)
 			} else {
-				return fmt.Errorf("failed to get artist by name: %w", err)
+				return err
 			}
 
 		} else {
@@ -67,12 +66,12 @@ func (b *AlbumBuilder) SetGenres(ctx context.Context, parsingGenres []model.Pars
 				newGenre := model.NewGenre(parsingGenre.Name)
 
 				if err := b.MusicRepos.GenreRepo.Create(ctx, &newGenre); err != nil {
-					return fmt.Errorf("failed to create genre: %w", err)
+					return err
 				}
 
 				b.album.Genres = append(b.album.Genres, newGenre)
 			} else {
-				return fmt.Errorf("failed to get genre by name: %w", err)
+				return err
 			}
 
 		} else {
@@ -86,7 +85,7 @@ func (b *AlbumBuilder) SetGenres(ctx context.Context, parsingGenres []model.Pars
 	return nil
 }
 
-func (b *AlbumBuilder) SetAlbum(ctx context.Context, albumName string, cover string, releaseData time.Time, recordType string, artists []model.Artist) error {
+func (b *AlbumBuilder) SetAlbum(ctx context.Context, albumName string, cover string, releaseData time.Time, recordType string) error {
 
 	// Extract artist IDs from music.Artists
 	artistIDs := make([]string, len(b.album.Artists))
@@ -101,7 +100,7 @@ func (b *AlbumBuilder) SetAlbum(ctx context.Context, albumName string, cover str
 
 			newAlbum := model.NewAlbum(albumName, cover, releaseData, recordType)
 			if err := b.MusicRepos.AlbumRepo.Create(ctx, &newAlbum); err != nil {
-				return fmt.Errorf("failed to create album: %w", err)
+				return err
 			}
 
 			// set fields for album
@@ -112,7 +111,7 @@ func (b *AlbumBuilder) SetAlbum(ctx context.Context, albumName string, cover str
 			b.album.RecordType = newAlbum.RecordType
 
 		} else {
-			return fmt.Errorf("failed to get album by name: %w", err)
+			return err
 		}
 	} else {
 
@@ -133,10 +132,11 @@ func (b *AlbumBuilder) SetAlbum(ctx context.Context, albumName string, cover str
 	return nil
 }
 
-func (b *AlbumBuilder) SetTracks(ctx context.Context, parsingTracks []model.ParsingTrack, albumID string) error {
+func (b *AlbumBuilder) SetTracks(ctx context.Context, parsingTracks []model.ParsingTrack) error {
+
 	for _, parsingTrack := range parsingTracks {
 
-		track, err := b.MusicRepos.TrackRepo.GetTrackByAlbumIDAndTrackName(ctx, albumID, parsingTrack.Title)
+		track, err := b.MusicRepos.TrackRepo.GetTrackByAlbumIDAndTrackName(ctx, b.album.ID, parsingTrack.Title)
 
 		if err != nil {
 
@@ -145,12 +145,12 @@ func (b *AlbumBuilder) SetTracks(ctx context.Context, parsingTracks []model.Pars
 				newTrack := model.NewTrack(parsingTrack.Title, parsingTrack.DurationSec, parsingTrack.TrackPosition, parsingTrack.DiscNumber, parsingTrack.ReleaseDate)
 
 				if err := b.MusicRepos.TrackRepo.Create(ctx, &newTrack); err != nil {
-					return fmt.Errorf("failed to create track: %w", err)
+					return err
 				}
 
 				b.album.Tracks = append(b.album.Tracks, newTrack)
 			} else {
-				return fmt.Errorf("failed to get track by name: %w", err)
+				return err
 			}
 
 		} else {
@@ -165,17 +165,17 @@ func (b *AlbumBuilder) SetTracks(ctx context.Context, parsingTracks []model.Pars
 	return nil
 }
 
-func (b *AlbumBuilder) SetMusicLinks(ctx context.Context, links map[string]model.LinkResult, ownerID string, ownerType model.OwnerType) error {
-	for _, link := range links {
-		musicLink := model.NewMusicLink(link.Service, link.URL, ownerID, string(ownerType))
+func (b *AlbumBuilder) SetMusicLinks(ctx context.Context, links map[string]model.LinkResult) error {
+	for _, link := range b.album.MusicLinks {
+		musicLink := model.NewMusicLink(link.Service, link.URL, b.album.ID, string(model.MusicRequestAlbum))
 
 		if err := b.MusicRepos.MusicLinkRepo.Create(ctx, &musicLink); err != nil {
-			return fmt.Errorf("failed to upsert music link: %w", err)
+			return err
 		}
 
 		formattedOutputLink, err := b.LinkFormater.FormatLinkFromDBToOutput(link.URL, link.Service)
 		if err != nil {
-			return fmt.Errorf("failed to format link from db to output: %w", err)
+			return err
 		}
 
 		// add formated link to output result
@@ -187,8 +187,14 @@ func (b *AlbumBuilder) SetMusicLinks(ctx context.Context, links map[string]model
 	return nil
 }
 
-func (b *AlbumBuilder) SetTrackPreview(context.Context, string, string, model.OwnerType) error {
-	// no preview for tracks while requesting albums
+func (b *AlbumBuilder) SetTrackPreview(ctx context.Context, musicPreviewURL string) error {
+	// add track previews for album's tracks
+	for _, track := range b.album.Tracks {
+		newPreview := model.NewTrackPreview(track.ID, musicPreviewURL)
+		if err := b.MusicRepos.TrackPreviewRepo.Create(ctx, &newPreview); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -200,7 +206,7 @@ func (b *AlbumBuilder) GetMusic() (*dto.MusicResult, error) {
 
 	data, err := json.Marshal(album)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal album: %w", err)
+		return nil, err
 	}
 
 	music := &dto.MusicResult{
