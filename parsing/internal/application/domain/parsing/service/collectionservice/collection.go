@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/mdobak/go-xerrors"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/dto"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/service"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/common"
@@ -62,6 +63,7 @@ func (s *CollectionService) ProcessParsingTrackRequest(ctx context.Context, d co
 	var requestData dto.RequestParsing
 
 	if err := json.Unmarshal(d.Body, &requestData); err != nil {
+		xerrors.Print(err)
 		return err
 	}
 

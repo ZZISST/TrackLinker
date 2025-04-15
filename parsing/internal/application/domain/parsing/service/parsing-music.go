@@ -2,9 +2,11 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"sync"
 
+	"github.com/mdobak/go-xerrors"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/modelutils"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/service/musicservice"
@@ -61,21 +63,25 @@ func (p *ParsingService) GetTrackDataByData(title *string, artist *string) (*mod
 
 func (p *ParsingService) GetTrackDataByLink(link *url.URL) (*model.LinkData, *model.ParsingTrack, error) {
 
+	log.Printf("GetTrackDataByLink: %s", link)
 	streamingService, err := p.linkFormater.IdentifyMusicServiceByLink(link)
-
 	if err != nil {
+		xerrors.Print(err)
 		return nil, nil, err
 	}
 
+	log.Printf("Streaming servce: %s", streamingService)
 	parsingData, err := p.getTrackParsingData(link, streamingService)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	log.Printf("Parsing data: %s", parsingData)
 	links, err := p.getTrackLinks(parsingData.Title, parsingData.Artist)
 	if err != nil {
 		return nil, nil, err
 	}
+	log.Printf("Links: %s", links)
 
 	parsedMusic, err := p.getAllTrackData(parsingData.Title, parsingData.Artist)
 	if err != nil {
@@ -148,18 +154,19 @@ func (p *ParsingService) getTrackLinks(title string, artist string) (*model.Link
 			if err != nil {
 				return
 			}
+			log.Printf("Track URL: %s", urlStr)
 
 			trackUrl, err := url.Parse(urlStr)
 			if err != nil {
 				return
 			}
 
-			mtype, err := p.linkFormater.IdentifyMusicTypeByLink(trackUrl)
-			if err != nil {
-				return
-			}
+			// mtype, err := p.linkFormater.IdentifyMusicTypeByLink(trackUrl)
+			// if err != nil {
+			// 	return
+			// }
 
-			formattedLink, err := p.linkFormater.FormatLinkForDB(*mtype, trackUrl)
+			formattedLink, err := p.linkFormater.FormatLinkForDB(model.MusicRequestTrack, trackUrl)
 			if err != nil {
 				return
 			}

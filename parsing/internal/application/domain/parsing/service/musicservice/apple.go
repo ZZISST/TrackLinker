@@ -134,6 +134,9 @@ Returns:
 Author:
 */
 func (s *AppleService) GetTrackUrl(title, artist string) (trackUrl string, err error) {
+
+	log.Printf("AppleService.GetTrackUrl: title: %s, artist: %s", title, artist)
+
 	urlStr := "https://amp-api-edge.music.apple.com/v1/catalog/us/search"
 	searchTerm := fmt.Sprintf("%s %s", title, artist)
 

@@ -1,7 +1,8 @@
 package dto
 
 type DeezerTrackSearch struct {
-	ID    int `json:"id"`
+	ID    int    `json:"id"`
+	Link  string `json:"link"`
 	Album struct {
 		ID int `json:"id"`
 	} `json:"album"`
@@ -34,16 +35,24 @@ type DeezerAlbum struct {
 	ID           int                 `json:"id"`
 	Title        string              `json:"title"`
 	Cover        string              `json:"cover_xl"`
-	Genres       []DeezerGenre       `json:"genres,omitempty"`
+	Genres       DeezerGenres        `json:"genres,omitempty"` // Update this field
 	ReleaseDate  string              `json:"release_date"`
 	RecordType   string              `json:"record_type"`
 	Contributors []DeezerContributor `json:"contributors,omitempty"`
-	Tracks       []DeezerTrack       `json:"tracks,omitempty"`
+	Tracks       DeezerTrackData     `json:"tracks,omitempty"` // Update this field
 }
 
 type DeezerGenre struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
+}
+
+type DeezerGenres struct {
+	Data []DeezerGenre `json:"data"` // Match the "data" field in the JSON
+}
+
+type DeezerTrackData struct {
+	Data []DeezerTrack `json:"data"` // Match the "data" field in the JSON
 }
 
 type DeezerTrack struct {

@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"log/slog"
+	"os"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/collection"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/db"
@@ -21,12 +23,26 @@ import (
 func main() {
 	cfg := config.LoadConfig("")
 
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}
+
+	var handler slog.Handler = slog.NewTextHandler(os.Stdout, opts)
+
+	if cfg.Environment == config.ProductionEnv {
+		handler = slog.NewJSONHandler(os.Stdout, nil)
+	}
+
+	logger := slog.New(handler)
+
+	slog.SetDefault(logger)
+
 	db, err := db.NewAdapter(cfg.DatabaseURI)
 	if err != nil {
 		log.Fatal("Database connection fail", err)
 	}
 
-	err = db.AutoMigrate(&model.Album{}, &model.TrackPreview{}, &model.Track{}, &model.MusicLink{}, &model.Artist{})
+	err = db.AutoMigrate(&model.Album{}, &model.TrackPreview{}, &model.Track{}, &model.MusicLink{}, &model.Artist{}, &model.Genre{})
 	if err != nil {
 		log.Fatal("Database connection fail", err)
 	}

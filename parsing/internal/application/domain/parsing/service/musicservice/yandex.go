@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -122,6 +123,9 @@ Returns:
 Author:
 */
 func (s *YandexService) GetTrackUrl(title, artist string) (trackURL string, err error) {
+
+	log.Printf("YandexMusic.GetTrackUrl: title: %s, artist: %s", title, artist)
+
 	searchURL := "https://music.yandex.ru/handlers/music-search.jsx"
 	query := fmt.Sprintf("%s %s", title, artist)
 

@@ -51,7 +51,12 @@ func Routes(r *gin.RouterGroup, db ports.DBPort, s3 ports.S3Port, collection por
 	parsingHandler := NewParsingHandler(musicSvc)
 
 	r.GET("/track/:id", parsingHandler.GetTrackByID)
-	r.GET("/album/:id", parsingHandler.GetAlbumByID)
-	r.GET("/album/:album_id/track/:track_id", parsingHandler.GetAlbumTrackByID)
+
+	albumGroup := r.Group("/album")
+	{
+		albumGroup.GET("/:album_id/track/:track_id", parsingHandler.GetAlbumTrackByID)
+		albumGroup.GET("/:album_id", parsingHandler.GetAlbumByID)
+	}
+
 	r.POST("/music/search", parsingHandler.SearchMusic)
 }

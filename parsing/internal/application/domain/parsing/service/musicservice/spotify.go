@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -135,6 +136,9 @@ Returns:
 Author: Alexander Subbotin @CAHEK_aka_zzisst
 */
 func (s *SpotifyService) GetTrackUrl(title, artist string) (TrackUrl string, err error) {
+
+	log.Printf("SpotifyService.GetTrackUrl: title: %s, artist: %s", title, artist)
+
 	proxy := s.cfg.ProxyURL
 	service := s.authService
 	token, err := service.GetValidToken()

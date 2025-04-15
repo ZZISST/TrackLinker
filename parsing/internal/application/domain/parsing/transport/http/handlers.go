@@ -46,9 +46,9 @@ func (h *ParsingHandler) GetTrackByID(c *gin.Context) {
 //	@Summary	get album details
 //	@Tags		album
 //	@Produce	json
-//	@Param		id	path		string	true	"Album ID"
+//	@Param		album_id	path		string	true	"Album ID"
 //	@Success	200	{object}	model.Album
-//	@Router		/api/v1/album/{id} [get]
+//	@Router		/api/v1/album/{album_id} [get]
 func (h *ParsingHandler) GetAlbumByID(c *gin.Context) {
 	albumID := c.Param("id")
 

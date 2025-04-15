@@ -43,14 +43,27 @@ func (s Server) Run() error {
 	if s.cfg.Environment == config.ProductionEnv {
 		docs.SwaggerInfo.BasePath = "/"              // adjust if your API is under a sub-path
 		docs.SwaggerInfo.Schemes = []string{"https"} // use https since you're using SSL
+	} else {
+		docs.SwaggerInfo.BasePath = "/" // adjust if your API is under a sub-path
+		docs.SwaggerInfo.Schemes = []string{"http"}
 	}
 
 	gin.SetMode(gin.ReleaseMode)
 	log.Printf("Gin is running in %s mode", gin.Mode())
+	log.Printf(s.cfg.Environment + " mode")
 
 	if s.cfg.Environment == config.ProductionEnv {
 		s.engine.Use(cors.New(cors.Config{
 			AllowOrigins:     []string{"https://tracklinker.ru", "*"},
+			AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}))
+	} else {
+		s.engine.Use(cors.New(cors.Config{
+			AllowOrigins:     []string{"http://localhost:8080", "*"},
 			AllowMethods:     []string{"GET", "POST", "OPTIONS"},
 			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 			ExposeHeaders:    []string{"Content-Length"},
@@ -66,7 +79,7 @@ func (s Server) Run() error {
 	if s.cfg.Environment == config.ProductionEnv {
 		s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("https://tracklinker.ru/swagger/doc.json")))
 	} else {
-		s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		s.engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("http://localhost:8080/swagger/doc.json")))
 	}
 
 	return s.engine.Run("0.0.0.0" + ":" + "8080")

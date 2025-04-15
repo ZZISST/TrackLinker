@@ -16,7 +16,70 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/music/find": {
+        "/api/v1/album/{album_id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "album"
+                ],
+                "summary": "get album details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Album ID",
+                        "name": "album_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Album"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/album/{album_id}/track/{track_id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "track"
+                ],
+                "summary": "get album's track details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Album ID",
+                        "name": "album_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Track ID",
+                        "name": "track_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Track"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/music/search": {
             "post": {
                 "produces": [
                     "application/json"
@@ -40,25 +103,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MusicResultDto"
+                            "$ref": "#/definitions/dto.MusicResult"
                         }
                     }
                 }
             }
         },
-        "/api/v1/music/{id}": {
+        "/api/v1/track/{id}": {
             "get": {
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "music"
+                    "track"
                 ],
-                "summary": "get music details",
+                "summary": "get track details",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Music ID",
+                        "description": "Track ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -68,7 +131,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MusicTrack"
+                            "$ref": "#/definitions/model.Track"
                         }
                     }
                 }
@@ -84,57 +147,17 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.MusicResultDto": {
+        "dto.MusicResult": {
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "в зависимости от типа здесь будет другой JSON",
                     "type": "object"
-                },
-                "type": {
-                    "description": "\"track\", \"album\", \"playlist\"",
-                    "type": "string"
-                }
-            }
-        },
-        "dto.MusicTrack": {
-            "type": "object",
-            "properties": {
-                "album": {
-                    "$ref": "#/definitions/model.Album"
-                },
-                "artists": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/model.Artist"
-                    }
-                },
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/model.MusicLink"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "track_id": {
-                    "type": "string"
-                },
-                "track_number": {
-                    "type": "integer"
-                },
-                "track_preview": {
-                    "$ref": "#/definitions/model.TrackPreview"
                 }
             }
         },
         "model.Album": {
             "type": "object",
             "properties": {
-                "artist_id": {
-                    "type": "string"
-                },
                 "artists": {
                     "type": "array",
                     "items": {
@@ -144,8 +167,11 @@ const docTemplate = `{
                 "cover_image": {
                     "type": "string"
                 },
-                "created_at": {
-                    "type": "string"
+                "genres": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Genre"
+                    }
                 },
                 "id": {
                     "type": "string"
@@ -156,7 +182,10 @@ const docTemplate = `{
                         "$ref": "#/definitions/model.MusicLink"
                     }
                 },
-                "released_at": {
+                "record_type": {
+                    "type": "string"
+                },
+                "release_date": {
                     "type": "string"
                 },
                 "title": {
@@ -167,6 +196,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/model.Track"
                     }
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },
@@ -186,6 +218,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Genre": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -238,6 +284,18 @@ const docTemplate = `{
                     "description": "Foreign key",
                     "type": "string"
                 },
+                "artists": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Artist"
+                    }
+                },
+                "disc_number": {
+                    "type": "integer"
+                },
+                "duration_sec": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -247,14 +305,20 @@ const docTemplate = `{
                         "$ref": "#/definitions/model.MusicLink"
                     }
                 },
+                "release_date": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
                 "track_number": {
                     "type": "integer"
                 },
-                "track_preview_id": {
+                "track_preview": {
                     "$ref": "#/definitions/model.TrackPreview"
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },

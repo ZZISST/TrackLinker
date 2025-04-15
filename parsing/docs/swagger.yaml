@@ -5,55 +5,32 @@ definitions:
       link:
         type: string
     type: object
-  dto.MusicResultDto:
+  dto.MusicResult:
     properties:
       data:
-        description: в зависимости от типа здесь будет другой JSON
         type: object
-      type:
-        description: '"track", "album", "playlist"'
-        type: string
-    type: object
-  dto.MusicTrack:
-    properties:
-      album:
-        $ref: '#/definitions/model.Album'
-      artists:
-        items:
-          $ref: '#/definitions/model.Artist'
-        type: array
-      links:
-        items:
-          $ref: '#/definitions/model.MusicLink'
-        type: array
-      name:
-        type: string
-      track_id:
-        type: string
-      track_number:
-        type: integer
-      track_preview:
-        $ref: '#/definitions/model.TrackPreview'
     type: object
   model.Album:
     properties:
-      artist_id:
-        type: string
       artists:
         items:
           $ref: '#/definitions/model.Artist'
         type: array
       cover_image:
         type: string
-      created_at:
-        type: string
+      genres:
+        items:
+          $ref: '#/definitions/model.Genre'
+        type: array
       id:
         type: string
       music_links:
         items:
           $ref: '#/definitions/model.MusicLink'
         type: array
-      released_at:
+      record_type:
+        type: string
+      release_date:
         type: string
       title:
         type: string
@@ -61,6 +38,8 @@ definitions:
         items:
           $ref: '#/definitions/model.Track'
         type: array
+      type:
+        type: string
     type: object
   model.Artist:
     properties:
@@ -73,6 +52,15 @@ definitions:
       id:
         type: string
       name:
+        type: string
+    type: object
+  model.Genre:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      type:
         type: string
     type: object
   model.MusicLink:
@@ -110,18 +98,30 @@ definitions:
       album_id:
         description: Foreign key
         type: string
+      artists:
+        items:
+          $ref: '#/definitions/model.Artist'
+        type: array
+      disc_number:
+        type: integer
+      duration_sec:
+        type: integer
       id:
         type: string
       music_links:
         items:
           $ref: '#/definitions/model.MusicLink'
         type: array
+      release_date:
+        type: string
       title:
         type: string
       track_number:
         type: integer
-      track_preview_id:
+      track_preview:
         $ref: '#/definitions/model.TrackPreview'
+      type:
+        type: string
     type: object
   model.TrackPreview:
     properties:
@@ -139,12 +139,12 @@ info:
   title: TrackLinker Swagger API
   version: "2.0"
 paths:
-  /api/v1/music/{id}:
+  /api/v1/album/{album_id}:
     get:
       parameters:
-      - description: Music ID
+      - description: Album ID
         in: path
-        name: id
+        name: album_id
         required: true
         type: string
       produces:
@@ -153,11 +153,34 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.MusicTrack'
-      summary: get music details
+            $ref: '#/definitions/model.Album'
+      summary: get album details
       tags:
-      - music
-  /api/v1/music/find:
+      - album
+  /api/v1/album/{album_id}/track/{track_id}:
+    get:
+      parameters:
+      - description: Album ID
+        in: path
+        name: album_id
+        required: true
+        type: string
+      - description: Track ID
+        in: path
+        name: track_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Track'
+      summary: get album's track details
+      tags:
+      - track
+  /api/v1/music/search:
     post:
       parameters:
       - description: Body
@@ -172,8 +195,26 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.MusicResultDto'
+            $ref: '#/definitions/dto.MusicResult'
       summary: get music
       tags:
       - music
+  /api/v1/track/{id}:
+    get:
+      parameters:
+      - description: Track ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Track'
+      summary: get track details
+      tags:
+      - track
 swagger: "2.0"

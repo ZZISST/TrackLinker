@@ -12,10 +12,12 @@ package musicservice
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"time"
 
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/dto"
@@ -60,12 +62,12 @@ Returns:
 Author: Vladimir Stabrovskiy @godnesty
 */
 func (s *DeezerService) GetTrackData(trackUrl string) (title string, artist string, err error) {
-	trackID := deezerExtractTrackID(trackUrl)
-	if trackID == "" {
+	trackID, err := deezerExtractTrackID(trackUrl)
+	if err != nil {
 		return "", "", fmt.Errorf("не удалось извлечь ID трека из URL")
 	}
 
-	apiURL := fmt.Sprintf("https://api.deezer.com/track/%s", trackID)
+	apiURL := fmt.Sprintf("https://api.deezer.com/track/%d", trackID)
 
 	resp, err := http.Get(apiURL)
 	if err != nil {
@@ -110,7 +112,63 @@ Returns:
 Author:
 */
 func (s *DeezerService) GetTrackUrl(title, artist string) (TrackUrl string, err error) {
-	return "", nil
+
+	log.Printf("DeezerService.GetTrackUrl: title: %s, artist: %s", title, artist)
+	encodedTitle := url.QueryEscape(title)
+	encodedArtist := url.QueryEscape(artist)
+
+	searchUrl := fmt.Sprintf("https://api.deezer.com/search?q=%s%%20%s", encodedTitle, encodedArtist)
+
+	log.Printf("DeezerService.GetTrackUrl: searchUrl: %s", searchUrl)
+
+	req, err := http.NewRequest("GET", searchUrl, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create a req to Deezer API: %w", err)
+	}
+
+	log.Printf("DeezerService.GetTrackUrl: req: %v", req)
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to send a req: %w", err)
+	}
+	defer resp.Body.Close()
+
+	log.Printf("DeezerService.GetTrackUrl: resp: %v", resp)
+
+	// Check the response status code
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Deezer API returned status code: %d, body: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if len(body) == 0 {
+		log.Printf("Deezer API returned an empty response body")
+		return "", fmt.Errorf("empty response body from Deezer API")
+	}
+
+	var deezerResp dto.DeezerTrackResponse
+	if err := json.NewDecoder(resp.Body).Decode(&deezerResp); err != nil {
+		body, _ := io.ReadAll(resp.Body) // Read the response body for debugging
+		log.Printf("Error unmarshaling JSON: %v, body: %s", err, string(body))
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(deezerResp.Data) == 0 {
+		return "", fmt.Errorf("no tracks found in Deezer response")
+	}
+
+	return deezerResp.Data[0].Link, nil
 }
 
 /*
@@ -159,7 +217,7 @@ func (s *DeezerService) GetAllTrackData(title, artist string) (*model.ParsingTra
 
 	firstTrack := deezerResp.Data[0]
 
-	trackUrl := fmt.Sprintf("https://api.deezer.com/track/%s", firstTrack.ID)
+	trackUrl := fmt.Sprintf("https://api.deezer.com/track/%d", firstTrack.ID)
 
 	req, err = http.NewRequest("GET", trackUrl, nil)
 	if err != nil {
@@ -192,7 +250,7 @@ func (s *DeezerService) GetAllTrackData(title, artist string) (*model.ParsingTra
 	}
 
 	// Get genres
-	albumUrl := fmt.Sprintf("https://api.deezer.com/album/%s", firstTrack.Album.ID)
+	albumUrl := fmt.Sprintf("https://api.deezer.com/album/%d", firstTrack.Album.ID)
 
 	req, err = http.NewRequest("GET", albumUrl, nil)
 	if err != nil {
@@ -290,7 +348,7 @@ func (s *DeezerService) GetAllAlbumData(title, artist string) (*model.ParsingAlb
 		if track.Album.Title == title {
 
 			// for Contributors and Genres
-			albumUrl := fmt.Sprintf("https://api.deezer.com/album/%s", track.Album.ID)
+			albumUrl := fmt.Sprintf("https://api.deezer.com/album/%d", track.Album.ID)
 
 			req, err = http.NewRequest("GET", albumUrl, nil)
 			if err != nil {
@@ -381,18 +439,23 @@ Parameters:
 Returns:
   - trackID (string): The extracted track ID.
 
-Author: Vladimir Stabrovskiy @godnesty
+Author:
 */
-func deezerExtractTrackID(trackUrl string) string {
-	re := regexp.MustCompile(`(?:track|x).*?(\d+)`)
+func deezerExtractTrackID(trackUrl string) (int, error) {
+	re := regexp.MustCompile(`track/(\d+)`)
 
 	matches := re.FindStringSubmatch(trackUrl)
 
+	// If a match is found, convert the track ID to an integer
 	if len(matches) > 1 {
-		return matches[1]
+		trackID, err := strconv.Atoi(matches[1])
+		if err != nil {
+			return 0, fmt.Errorf("failed to convert track ID to int: %w", err)
+		}
+		return trackID, nil
 	}
 
-	return ""
+	return 0, fmt.Errorf("no track ID found in URL: %s", trackUrl)
 }
 
 func convertContributorsToParsingArtists(contributors []dto.DeezerContributor) []model.ParsingArtist {
@@ -414,7 +477,7 @@ func convertAlbumToParsingAlbum(album dto.DeezerAlbum) model.ParsingAlbum {
 		Title:      album.Title,
 		Cover:      album.Cover,
 		RecordType: album.RecordType,
-		Genres:     convertGenresToParsingGenres(album.Genres),
+		Genres:     convertGenresToParsingGenres(album.Genres.Data),
 	}
 }
 

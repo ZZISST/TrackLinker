@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/mdobak/go-xerrors"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 )
 
@@ -29,6 +30,7 @@ func (l *LinkFormater) IdentifyMusicTypeByLink(link *url.URL) (*model.MusicReque
 
 	musicService, err := l.IdentifyMusicServiceByLink(link)
 	if err != nil {
+		xerrors.Print(err)
 		return nil, fmt.Errorf("unsupported music service")
 	}
 
@@ -103,6 +105,7 @@ func (l *LinkFormater) FormatLinkForDB(mtype model.MusicRequestType, link *url.U
 
 	musicService, err := l.IdentifyMusicServiceByLink(link)
 	if err != nil {
+		xerrors.Print(err)
 		return nil, fmt.Errorf("unsupported music service")
 	}
 

@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
+	"github.com/mdobak/go-xerrors"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/dto"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/modelutils"
@@ -71,11 +73,13 @@ func (m MusicService) GetTrackByID(ctx context.Context, id string) (*model.Track
 
 	track, err := m.MusicRepos.TrackRepo.GetTrackByID(ctx, id)
 	if err != nil {
+		xerrors.Print(err)
 		return nil, err
 	}
 
 	formattedLinks, err := m.LinkFormater.FormatLinksFromDBToOutput(track.MusicLinks)
 	if err != nil {
+		xerrors.Print(err)
 		return nil, err
 	}
 
@@ -101,11 +105,13 @@ func (m MusicService) GetAlbumByID(ctx context.Context, id string) (*model.Album
 
 	album, err := m.MusicRepos.AlbumRepo.GetAlbumByID(ctx, id)
 	if err != nil {
+		xerrors.Print(err)
 		return nil, err
 	}
 
 	formattedLinks, err := m.LinkFormater.FormatLinksFromDBToOutput(album.MusicLinks)
 	if err != nil {
+		xerrors.Print(err)
 		return nil, err
 	}
 
@@ -116,6 +122,7 @@ func (m MusicService) GetAlbumByID(ctx context.Context, id string) (*model.Album
 
 		formattedLinks, err = m.LinkFormater.FormatLinksFromDBToOutput(track.MusicLinks)
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 
@@ -144,11 +151,13 @@ func (m MusicService) GetAlbumTrackByID(ctx context.Context, albumId string, tra
 
 	track, err := m.MusicRepos.TrackRepo.GetTrackByAlbumAndTrackID(ctx, albumId, trackId)
 	if err != nil {
+		xerrors.Print(err)
 		return nil, err
 	}
 
 	formattedLinks, err := m.LinkFormater.FormatLinksFromDBToOutput(track.MusicLinks)
 	if err != nil {
+		xerrors.Print(err)
 		return nil, err
 	}
 
@@ -173,11 +182,14 @@ func (m MusicService) FindMusic(link url.URL) (*dto.MusicResult, error) {
 
 	musicType, err := m.LinkFormater.IdentifyMusicTypeByLink(&link)
 	if err != nil {
+		xerrors.Print(err)
 		return nil, err
 	}
 
 	music, err := m.findMusicByLink(context.Background(), link, *musicType)
 	if err != nil {
+		trace := xerrors.StackTrace(err)
+		fmt.Print(trace)
 		return nil, err
 	}
 
@@ -186,11 +198,13 @@ func (m MusicService) FindMusic(link url.URL) (*dto.MusicResult, error) {
 
 func (m MusicService) findMusicByLink(ctx context.Context, link url.URL, musicType model.MusicRequestType) (*dto.MusicResult, error) {
 
+	log.Printf("musicType: %s", musicType)
 	switch musicType {
 
 	case model.MusicRequestTrack:
 		track, err := m.findTrackByLink(ctx, link)
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 		return track, nil
@@ -198,6 +212,7 @@ func (m MusicService) findMusicByLink(ctx context.Context, link url.URL, musicTy
 	case model.MusicRequestAlbum:
 		album, err := m.findAlbumByLink(ctx, link)
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 		return album, nil
@@ -205,6 +220,7 @@ func (m MusicService) findMusicByLink(ctx context.Context, link url.URL, musicTy
 	case model.MusicRequestTrackInAlbum:
 		track, err := m.findAlbumTrackByLink(ctx, link)
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 		return track, nil
@@ -238,12 +254,14 @@ func (m MusicService) findTrackByLink(ctx context.Context, link url.URL) (*dto.M
 		// Get Data
 		linkData, fullData, err := m.ParsingSvc.GetTrackDataByLink(&link)
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 
 		// Get TrackBuilder
 		builder, err := builderservice.GetBuilder(model.MusicRequestTrack)
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 
@@ -257,6 +275,7 @@ func (m MusicService) findTrackByLink(ctx context.Context, link url.URL) (*dto.M
 		artistStr := formatArtistNames(fullData.Artists)
 		previewAudioUrl, err := m.CloudSvc.UploadTrackPreview(fullData.Preview, fullData.Title, artistStr)
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 
@@ -270,16 +289,19 @@ func (m MusicService) findTrackByLink(ctx context.Context, link url.URL) (*dto.M
 
 		music, err = builder.GetMusic()
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 
 	} else if err != nil {
+		xerrors.Print(err)
 		return nil, err
 	}
 
 	if track != nil {
 		formattedLinks, err := m.LinkFormater.FormatLinksFromDBToOutput(track.MusicLinks)
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 
@@ -287,6 +309,7 @@ func (m MusicService) findTrackByLink(ctx context.Context, link url.URL) (*dto.M
 
 		data, err := json.Marshal(track)
 		if err != nil {
+			xerrors.Print(err)
 			return nil, err
 		}
 
