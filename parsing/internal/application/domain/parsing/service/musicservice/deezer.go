@@ -188,7 +188,7 @@ func (s *DeezerService) GetAllTrackData(title, artist string) (*model.ParsingTra
 	encodedTitle := url.QueryEscape(title)
 	encodedArtist := url.QueryEscape(artist)
 
-	searchUrl := fmt.Sprintf("https://api.deezer.com/search?q=%s%%20%s", encodedTitle, encodedArtist)
+	searchUrl := fmt.Sprintf("https://api.deezer.com/search/track?q=%s%%20%s", encodedTitle, encodedArtist)
 
 	req, err := http.NewRequest("GET", searchUrl, nil)
 	if err != nil {
@@ -314,7 +314,7 @@ func (s *DeezerService) GetAllAlbumData(title, artist string) (*model.ParsingAlb
 	encodedTitle := url.QueryEscape(title)
 	encodedArtist := url.QueryEscape(artist)
 
-	searchUrl := fmt.Sprintf("https://api.deezer.com/search?q=%s%%20%s", encodedTitle, encodedArtist)
+	searchUrl := fmt.Sprintf("https://api.deezer.com/search/album?q=%s%%20%s", encodedTitle, encodedArtist)
 
 	req, err := http.NewRequest("GET", searchUrl, nil)
 	if err != nil {
