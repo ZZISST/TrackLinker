@@ -1,10 +1,8 @@
 package main
 
 import (
-	"log"
-	"log/slog"
-	"os"
-
+	"github.com/gookit/slog"
+	// "github.com/gookit/slog/handler"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/collection"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/db"
 	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/adapters/mq"
@@ -23,53 +21,46 @@ import (
 func main() {
 	cfg := config.LoadConfig("")
 
-	opts := &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}
+	// opts := &slog.HandlerOptions{
+	// 	Level: slog.LevelDebug,
+	// }
 
-	var handler slog.Handler = slog.NewTextHandler(os.Stdout, opts)
+	slog.Configure(func(logger *slog.SugaredLogger) {
+		f := logger.Formatter.(*slog.TextFormatter)
+		f.EnableColor = true
+	})
 
 	if cfg.Environment == config.ProductionEnv {
-		handler = slog.NewJSONHandler(os.Stdout, nil)
+		slog.SetFormatter(slog.NewJSONFormatter())
 	}
-
-	logger := slog.New(handler)
-
-	slog.SetDefault(logger)
 
 	db, err := db.NewAdapter(cfg.DatabaseURI)
 	if err != nil {
-		log.Fatal("Database connection fail", err)
+		slog.Fatal("Database connection fail", err)
 	}
 
 	err = db.AutoMigrate(&model.Album{}, &model.TrackPreview{}, &model.Track{}, &model.MusicLink{}, &model.Artist{}, &model.Genre{})
 	if err != nil {
-		log.Fatal("Database connection fail", err)
+		slog.Fatal("Database connection fail", err)
 	}
 
 	if err := AutoMigrateMusicService(db); err != nil {
-		log.Fatalf("Failed to migrate: %v", err)
-	}
-
-	if err := SeedMusicServices(db); err != nil {
-		log.Fatalf("Failed to seed music services: %v", err)
+		slog.Fatalf("Failed to migrate: %v", err)
 	}
 
 	s3 := s3.NewAdapter(*cfg)
 
 	mq, err := mq.NewAdapter(cfg.AMQPURL)
 	if err != nil {
-		log.Fatal("Message Queue connection fail", err)
+		slog.Fatal("Message Queue connection fail", err)
 	}
 
 	collection := collection.NewAdapter(mq)
 
-	// Initialize the HTTP server
 	server := httpServer.NewServer(db, s3, mq, collection)
 
-	// Run the server (this blocks the program)
 	if err := server.Run(); err != nil {
-		log.Fatalf("Failed to run server: %v", err)
+		slog.Fatalf("Failed to run server: %v", err)
 	}
 
 }
@@ -88,16 +79,16 @@ func AutoMigrateMusicService(db *db.Adapter) error {
 	}
 
 	// AutoMigrate the table
-	return db.AutoMigrate(&model.MusicServiceDictionary{})
-}
+	if err := db.AutoMigrate(&model.MusicServiceDictionary{}); err != nil {
+		return err
+	}
 
-func SeedMusicServices(db *db.Adapter) error {
+	// Seed initial data
 	services := []model.MusicServiceDictionary{
 		{Service: model.Apple},
 		{Service: model.Yandex},
 		{Service: model.Spotify},
 		{Service: model.Deezer},
-		{Service: model.Unsupported},
 	}
 
 	for _, service := range services {
