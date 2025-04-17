@@ -71,7 +71,7 @@ func AutoMigrateMusicService(db *db.Adapter) error {
         DO $$
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'music_service') THEN
-                CREATE TYPE music_service AS ENUM ('Apple', 'Yandex', 'Spotify', 'Deezer', 'Unsupported');
+                CREATE TYPE music_service AS ENUM ('Apple', 'Yandex', 'Spotify', 'Deezer');
             END IF;
         END$$;
     `).Error; err != nil {
