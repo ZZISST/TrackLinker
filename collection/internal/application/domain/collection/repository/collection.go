@@ -8,7 +8,7 @@ import (
 )
 
 type ICollectionRepository interface {
-	CreateCollection(ctx context.Context, collection *model.Collection) error	
+	CreateCollection(ctx context.Context, collection *model.Collection) error
 	GetCollectionByUserID(ctx context.Context, userID string) (*model.Collection, error)
 }
 
@@ -33,7 +33,6 @@ func (r *CollectionRepository) GetCollectionByUserID(ctx context.Context, userID
 func (r *CollectionRepository) CreateCollection(ctx context.Context, collection *model.Collection) error {
 	return r.db.Create(ctx, collection)
 }
-
 
 func NewCollectionRepository(db ports.DBPort) ICollectionRepository {
 	return &CollectionRepository{

@@ -139,8 +139,8 @@ func TestFormatLinkFromDBToOutput(t *testing.T) {
 		{"Yandex Album", "/album/2754", model.Yandex, "https://music.yandex.com/album/2754", false},
 		{"Spotify Track", "/track/2aIB1CdRRG7YLBu9nR", model.Spotify, "https://open.spotify.com/track/2aIB1CdRRG7YLBu9nR", false},
 		{"Spotify Album", "/album/7APnZJwayR3lH9aUDPDYQB", model.Spotify, "https://open.spotify.com/album/7APnZJwayR3lH9aUDPDYQB", false},
-		{"Deezer Album", "/album/8880231", model.Deezer, "https://deezer.page.link/album/8880231", false},
-		{"Deezer Track", "/track/87938845", model.Deezer, "https://deezer.page.link/track/87938845", false},
+		{"Deezer Album", "/album/8880231", model.Deezer, "https://deezer.com/album/8880231", false},
+		{"Deezer Track", "/track/87938845", model.Deezer, "https://deezer.com/track/87938845", false},
 		{"Unsupported Service", "/track/12345", model.Unsupported, "", true},
 	}
 

@@ -166,7 +166,7 @@ func (s *ListeningService) MakeListening(ctx context.Context, userID, name, arti
 			// Создание Listening
 			newListening := model.NewListening(timeStart, timeEnd, newAddedContent.ID)
 			s.listeningRepo.Create(ctx, &newListening)
-			
+
 			log.Printf("Listening: %v", newListening)
 		} else {
 			// Если AddedContent существует, то создаем Listening

@@ -14,7 +14,7 @@ import (
 
 //	@title			TrackLinker Swagger API
 //	@version		2.0
-//	@description	Swagger API for GoShop.
+//	@description	Parsing microservice: track and album metadata with unified streaming links.
 //	@termsOfService	http://swagger.io/terms/
 
 // @BasePath	/api/v1

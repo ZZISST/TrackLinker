@@ -346,7 +346,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "TrackLinker Swagger API",
-	Description:      "Swagger API for GoShop.",
+	Description:      "Parsing microservice: track and album metadata with unified streaming links.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

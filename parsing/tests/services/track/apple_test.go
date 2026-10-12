@@ -1,42 +1,30 @@
+//go:build integration
+
+// Интеграционный тест: ходит в реальный API.
+// Запуск: go test -tags integration ./tests/...
 package service_test
 
 import (
 	"testing"
 
-	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/model"
-	service "gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/service"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gitlab.com/etherealSent/tracklinker-backend/parsing/internal/application/domain/parsing/service/musicservice"
 )
 
-type MockAppleMusicService struct{}
+func TestGetTrackUrl_Apple(t *testing.T) {
+	svc := musicservice.NewAppleService()
+	url, err := svc.GetTrackUrl("Still Don't Know My Name", "Labrinth")
 
-func (m *MockAppleMusicService) GetUrl(title, artist string) (string, error) {
-	return service.NewAppleService().GetUrl(title, artist)
-}
-// TODO: починить этот метод (возвращает не верного артиста)
-func (m *MockAppleMusicService) GetData(trackUrl string) (string, string, error) {
-	return service.NewAppleService().GetData(trackUrl)
-}
-
-func (m *MockAppleMusicService) Service() model.MusicService {
-	return model.Apple
-}
-
-func TestGetUrl_AppleMusic(t *testing.T) {
-	service := &MockAppleMusicService{}
-	url, err := service.GetUrl("Still Don't Know My Name", "Labrinth")
-
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "https://music.apple.com/us/song/1481092695", url)
 }
 
-func TestGetData_AppleMusic(t *testing.T) {
-	service := &MockAppleMusicService{}
-	title, artist, err := service.GetData("https://music.apple.com/ru/album/still-dont-know-my-name/1481092579?i=1481092695")
+func TestGetTrackData_Apple(t *testing.T) {
+	svc := musicservice.NewAppleService()
+	title, artist, err := svc.GetTrackData("https://music.apple.com/ru/album/still-dont-know-my-name/1481092579?i=1481092695")
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "Still Don't Know My Name", title)
 	assert.Equal(t, "Labrinth", artist)
 }
-
-

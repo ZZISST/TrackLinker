@@ -12,7 +12,7 @@ type Collection struct {
 
 func NewCollection(userId string) *Collection {
 	return &Collection{
-		ID: uuid.New().String(),
+		ID:     uuid.New().String(),
 		UserID: userId,
 	}
 }

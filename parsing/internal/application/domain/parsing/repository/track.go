@@ -52,7 +52,7 @@ func (r *TrackRepository) GetTrackByMusicLink(ctx context.Context, musicLink url
 
 	if err := r.db.FindOne(ctx, &track, opts...); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Printf("Track not found for music link: %s", musicLink)
+			log.Printf("Track not found for music link: %s", musicLink.String())
 			return nil, err // Track not found
 		}
 		return nil, err

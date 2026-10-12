@@ -15,8 +15,8 @@ func (a *Adapter) Subscribe() (<-chan common.Message, error) {
 	// Объявляем очередь, чтобы убедиться, что она существует
 	queue, err := a.mq.DeclareQueue("parsing.queue")
 	if err != nil {
-	 log.Printf("Ошибка при объявлении очереди parsing.queue: %v", err)
-	 return nil, err
+		log.Printf("Ошибка при объявлении очереди parsing.queue: %v", err)
+		return nil, err
 	}
 	log.Printf("Очередь объявлена: %s", queue.Name)
 

@@ -74,11 +74,11 @@ func TestFormatLinkForDB(t *testing.T) {
 func TestFormatLinkFromDBToOutput(t *testing.T) {
 	linkFormatter := modelutils.NewLinkFormater()
 	tests := []struct {
-		name      string
-		input     string
-		service   model.MusicService
-		expected  string
-		wantErr   bool
+		name     string
+		input    string
+		service  model.MusicService
+		expected string
+		wantErr  bool
 	}{
 		{
 			"Apple Music Track Output",

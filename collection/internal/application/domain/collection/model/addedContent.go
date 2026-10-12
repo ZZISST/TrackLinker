@@ -10,15 +10,15 @@ type AddedContent struct {
 	OwnerType      string `json:"owner_type" gorm:"index"`
 	ReferralLinkID string
 
-	CollectionID   string  `json:"collection_id" gorm:"index"`
-	Listenings []Listening `json:"listenings" gorm:"foreignKey:AddedContentID"`
+	CollectionID string      `json:"collection_id" gorm:"index"`
+	Listenings   []Listening `json:"listenings" gorm:"foreignKey:AddedContentID"`
 }
 
 func NewAddedContent(collectionID, ownerID, ownerType string) AddedContent {
 	return AddedContent{
-		ID:        uuid.New().String(),
-		OwnerID:   ownerID,
-		OwnerType: ownerType,
+		ID:           uuid.New().String(),
+		OwnerID:      ownerID,
+		OwnerType:    ownerType,
 		CollectionID: collectionID,
 	}
 }
